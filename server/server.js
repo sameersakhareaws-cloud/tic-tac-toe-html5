@@ -219,9 +219,12 @@ function handleMessage(playerId, msg) {
         case 'rematch_accept': {
             const room = rooms.get(msg.roomId);
             if (!room) return;
-            const opponentId = (room.hostId === playerId) ? room.guestId : room.hostId;
-            if (opponentId) {
-                sendToPlayer(opponentId, 'rematch_accepted');
+            // Send rematch_accepted to BOTH players
+            if (room.hostId) {
+                sendToPlayer(room.hostId, 'rematch_accepted');
+            }
+            if (room.guestId) {
+                sendToPlayer(room.guestId, 'rematch_accepted');
             }
             break;
         }

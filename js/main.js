@@ -249,10 +249,8 @@
         });
 
         Multiplayer.on('rematchRequested', () => {
-            // Only the guest (O) auto-accepts — host already requested
-            if (mySymbol === 'O') {
-                Multiplayer.acceptRematch();
-            }
+            // Auto-accept rematch request from opponent
+            Multiplayer.acceptRematch();
         });
 
         Multiplayer.on('rematchAccepted', () => {

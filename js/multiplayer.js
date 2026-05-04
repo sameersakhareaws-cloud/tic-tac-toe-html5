@@ -337,6 +337,9 @@ const Multiplayer = (() => {
             send({ type: 'rematch_accept', roomId: myRoom });
         } else {
             localSend({ type: 'rematch_ack', roomId: myRoom });
+            // In local mode, storage event won't fire for the sender,
+            // so emit rematchAccepted locally
+            emit('rematchAccepted', {});
         }
     }
 
