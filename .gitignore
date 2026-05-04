@@ -10,3 +10,8 @@ USER.md
 agents/
 memory/
 tic-tac-toe-planning.md
+
+# Dependencies
+node_modules/
+package-lock.json
+/node_modules

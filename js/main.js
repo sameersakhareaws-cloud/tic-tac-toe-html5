@@ -104,7 +104,7 @@
         UI.onButton('copyCode', () => {
             const code = Multiplayer.getRoom();
             if (code) {
-                const link = CG.inviteLink({ roomId: copy });
+                const link = CG.inviteLink({ roomId: code });
                 navigator.clipboard.writeText(link).then(() => {
                     const btn = document.getElementById('btn-copy-code');
                     btn.textContent = '✅ Copied!';
@@ -164,7 +164,7 @@
         UI.onButton('backMenu', () => {
             if (isMultiplayer) {
                 Multiplayer.leaveRoom();
-                CG.leftroom();
+                CG.leftRoom();
             }
             TicTacToe.reset();
             UI.clearBoard();
@@ -216,8 +216,10 @@
         });
 
         Multiplayer.on('joinFailed', (data) => {
-            alert('Failed to join room: ' + data.reason);
-            UI.showScreen('menu');
+            console.log('Join failed:', data.reason);
+            // Show error in lobby then return to menu
+            UI.setPlayerNames('Error: ' + data.reason, '');
+            setTimeout(() => UI.showScreen('menu'), 2000);
         });
 
         Multiplayer.on('opponentJoined', (data) => {
@@ -303,7 +305,7 @@
 
         // Send move to server in multiplayer
         if (isMultiplayer) {
-            Multiplayer.sendMove(cellIndex);
+            Multiplayer.sendMove(cellIndex, currentPlayer);
         }
 
         updateGameUI();
