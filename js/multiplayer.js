@@ -16,7 +16,9 @@ const Multiplayer = (() => {
     let useWS = false;
     const listeners = {};
 
-    const WS_URL = 'wss://tic-tac-toe-ws.onrender.com';
+    // Connect to the same host that served this page, on port 3000
+    // For production, change this to your deployed WS server URL
+    const WS_URL = 'ws://' + window.location.hostname + ':3000';
     const WS_TIMEOUT = 3000;
     const STORAGE_PREFIX = 'ttmp_'; // tic-tacoe multiplayer
 

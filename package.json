@@ -8,7 +8,7 @@
         "dev": "npx serve . -l 8080 & node server/server.js"
     },
     "dependencies": {
-        "ws": "^8.16.0"
+        "ws": "^8.20.0"
     },
     "devDependencies": {
         "serve": "^14.2.0"
