@@ -86,7 +86,7 @@
 
         // Join confirm
         UI.onButton('joinConfirm', () => {
-            const code = UI.display.roomCodeInput.value.trim();
+            const code = document.getElementById('room-code-input').value.trim();
             if (code.length >= 4) {
                 isMultiplayer = true;
                 UI.showScreen('lobby');

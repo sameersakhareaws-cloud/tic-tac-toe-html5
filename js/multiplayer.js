@@ -2,14 +2,13 @@
  * Multiplayer module — handles room creation, joining, and move relay.
  *
  * Two modes:
- *   1. WebSocket (production) — connects to a WS server for cross-network play
- *   2. Local (dev/fallback) — uses BroadcastChannel for same-browser cross-tab play
+ *   1. WebSocket (production) — cross-network play via WS server
+ *   2. Local (dev/fallback) — same-origin cross-tab via localStorage events
  *
- * connect() ALWAYS resolves within ~3.5s — falls back to local mode if WS fails.
+ * connect() ALWAYS resolves — falls back to local mode if WS fails.
  */
 const Multiplayer = (() => {
     let ws = null;
-    let channel = null;
     let connected = false;
     let myRoom = null;
     let mySymbol = null;
@@ -19,6 +18,7 @@ const Multiplayer = (() => {
 
     const WS_URL = 'wss://tic-tac-toe-ws.onrender.com';
     const WS_TIMEOUT = 3000;
+    const STORAGE_PREFIX = 'ttmp_'; // tic-tacoe multiplayer
 
     // ===== Event System =====
 
@@ -64,14 +64,10 @@ const Multiplayer = (() => {
                 console.log('MP: Starting local mode:', reason);
 
                 useWS = false;
-                try {
-                    channel = new BroadcastChannel('tictactoe-v1');
-                    channel.onmessage = (event) => {
-                        handleLocalMessage(event.data);
-                    };
-                } catch (e) {
-                    console.log('MP: BroadcastChannel not supported');
-                }
+                // Listen for localStorage events from other tabs
+                window.addEventListener('storage', handleStorageEvent);
+                // Announce our presence
+                localStorage.setItem(STORAGE_PREFIX + 'mode', 'local');
                 done('local');
             }
 
@@ -96,7 +92,6 @@ const Multiplayer = (() => {
                 clearTimeout(timeout);
                 if (resolved) { try { ws.close(); } catch (e) {} return; }
                 useWS = true;
-                ws = ws; // keep reference
                 done('websocket');
             };
 
@@ -114,9 +109,7 @@ const Multiplayer = (() => {
             };
 
             ws.onerror = () => {
-                // Clear timeout — onclose will fire next and we'll fallback
                 clearTimeout(timeout);
-                // Wait a tick for onclose, then fallback if not resolved
                 setTimeout(() => {
                     if (!resolved) {
                         try { ws.close(); } catch (e) {}
@@ -128,12 +121,45 @@ const Multiplayer = (() => {
         });
     }
 
-    // ===== Local (BroadcastChannel) Mode =====
+    // ===== Local Mode (localStorage events) =====
+
+    /**
+     * localStorage 'storage' events fire in OTHER tabs when a tab writes to localStorage.
+     * We use this to relay messages between tabs on the same origin.
+     *
+     * Message format stored in localStorage:
+     *   key: ttmp_<roomId>_<timestamp>
+     *   value: JSON of { type, roomId, ...data, sender: myName }
+     *
+     * We also use a simple "rooms" registry:
+     *   ttmp_rooms = JSON of { roomId: { hostName, createdAt } }
+     */
+    function handleStorageEvent(event) {
+        if (!event.key || !event.key.startsWith(STORAGE_PREFIX)) return;
+        if (!event.newValue) return; // ignore deletions
+
+        try {
+            const msg = JSON.parse(event.newValue);
+            handleLocalMessage(msg);
+        } catch (e) {
+            // ignore non-JSON values
+        }
+    }
+
+    function localSend(msg) {
+        if (!myRoom) return;
+        msg.sender = myName;
+        msg._ts = Date.now();
+        const key = STORAGE_PREFIX + myRoom + '_' + msg._ts;
+        localStorage.setItem(key, JSON.stringify(msg));
+        // Clean up after a delay to avoid localStorage bloat
+        setTimeout(() => localStorage.removeItem(key), 5000);
+    }
 
     function handleLocalMessage(msg) {
         if (!msg || !msg.type) return;
 
-        // Filter by room (except global broadcasts)
+        // Filter by room
         const isForMyRoom = msg.roomId && msg.roomId === myRoom;
         const isGlobal = !msg.roomId;
 
@@ -143,20 +169,19 @@ const Multiplayer = (() => {
 
         switch (msg.type) {
             case 'room_exists':
-                console.log('MP: Room exists:', msg.roomId, 'host:', msg.hostName);
+                // Track room in registry
+                registerRoom(msg.roomId, msg.hostName);
                 break;
 
             case 'join_request':
                 if (mySymbol === 'X' && myRoom === msg.roomId) {
                     console.log('MP: Guest joining:', msg.guestName);
-                    if (channel) {
-                        channel.postMessage({
-                            type: 'join_accept',
-                            roomId: myRoom,
-                            guestName: msg.guestName,
-                            hostName: myName
-                        });
-                    }
+                    localSend({
+                        type: 'join_accept',
+                        roomId: myRoom,
+                        guestName: msg.guestName,
+                        hostName: myName
+                    });
                     emit('opponentJoined', { name: msg.guestName || 'Guest' });
                 }
                 break;
@@ -190,6 +215,15 @@ const Multiplayer = (() => {
                 if (isForMyRoom) emit('opponentLeft', {});
                 break;
         }
+    }
+
+    function registerRoom(roomId, hostName) {
+        let rooms = {};
+        try {
+            rooms = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'rooms') || '{}');
+        } catch (e) {}
+        rooms[roomId] = { hostName, createdAt: Date.now() };
+        localStorage.setItem(STORAGE_PREFIX + 'rooms', JSON.stringify(rooms));
     }
 
     // ===== WebSocket Message Handling =====
@@ -237,8 +271,8 @@ const Multiplayer = (() => {
     function send(data) {
         if (useWS && ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify(data));
-        } else if (!useWS && channel) {
-            channel.postMessage(data);
+        } else if (!useWS) {
+            localSend(data);
         }
     }
 
@@ -260,9 +294,8 @@ const Multiplayer = (() => {
         if (useWS) {
             send({ type: 'create_room', name: myName });
         } else {
-            if (channel) {
-                channel.postMessage({ type: 'room_exists', roomId: myRoom, hostName: myName });
-            }
+            registerRoom(myRoom, myName);
+            localSend({ type: 'room_exists', roomId: myRoom, hostName: myName });
             emit('roomCreated', { roomId: myRoom, symbol: 'X' });
         }
     }
@@ -276,9 +309,7 @@ const Multiplayer = (() => {
         if (useWS) {
             send({ type: 'join_room', roomId: myRoom, name: myName });
         } else {
-            if (channel) {
-                channel.postMessage({ type: 'join_request', roomId: myRoom, guestName: myName });
-            }
+            localSend({ type: 'join_request', roomId: myRoom, guestName: myName });
         }
     }
 
@@ -287,9 +318,7 @@ const Multiplayer = (() => {
         if (useWS) {
             send({ type: 'move', cell: cellIndex, roomId: myRoom, player: p });
         } else {
-            if (channel) {
-                channel.postMessage({ type: 'move', roomId: myRoom, cell: cellIndex, player: p });
-            }
+            localSend({ type: 'move', roomId: myRoom, cell: cellIndex, player: p });
         }
     }
 
@@ -297,7 +326,7 @@ const Multiplayer = (() => {
         if (useWS) {
             send({ type: 'rematch_request', roomId: myRoom });
         } else {
-            if (channel) channel.postMessage({ type: 'rematch_req', roomId: myRoom });
+            localSend({ type: 'rematch_req', roomId: myRoom });
         }
     }
 
@@ -305,7 +334,7 @@ const Multiplayer = (() => {
         if (useWS) {
             send({ type: 'rematch_accept', roomId: myRoom });
         } else {
-            if (channel) channel.postMessage({ type: 'rematch_ack', roomId: myRoom });
+            localSend({ type: 'rematch_ack', roomId: myRoom });
         }
     }
 
@@ -314,7 +343,7 @@ const Multiplayer = (() => {
             if (useWS) {
                 send({ type: 'leave', roomId: myRoom });
             } else {
-                if (channel) channel.postMessage({ type: 'peer_left', roomId: myRoom });
+                localSend({ type: 'peer_left', roomId: myRoom });
             }
             console.log('MP: Left room', myRoom);
             myRoom = null;
