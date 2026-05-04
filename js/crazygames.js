@@ -15,7 +15,11 @@ const CG = (() => {
         try {
             if (window.CrazyGames && window.CrazyGames.SDK) {
                 sdk = window.CrazyGames.SDK;
-                await sdk.init();
+                // Add timeout — SDK init should resolve within 5s
+                await Promise.race([
+                    sdk.init(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('CG SDK init timeout')), 5000))
+                ]);
                 initialized = true;
 
                 // Loading lifecycle
