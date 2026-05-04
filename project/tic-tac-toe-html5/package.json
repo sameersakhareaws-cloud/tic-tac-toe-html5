@@ -1,0 +1,16 @@
+{
+    "name": "tic-tac-toe-html5",
+    "version": "1.0.0",
+    "description": "Tic-Tac-Toe HTML5 game with multiplayer room functionality for CrazyGames",
+    "main": "server/server.js",
+    "scripts": {
+        "start": "node server/server.js",
+        "dev": "npx serve . -l 8080 & node server/server.js"
+    },
+    "dependencies": {
+        "ws": "^8.16.0"
+    },
+    "devDependencies": {
+        "serve": "^14.2.0"
+    }
+}

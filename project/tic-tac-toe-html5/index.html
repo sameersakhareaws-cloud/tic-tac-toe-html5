@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Tic-Tac-Toe Online</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="screen active">
+        <div class="loader-content">
+            <h1>⚡ Tic-Tac-Toe</h1>
+            <div class="spinner"></div>
+            <p id="loading-text">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="menu-screen" class="screen">
+        <div class="menu-content">
+            <h1>⚡ Tic-Tac-Toe</h1>
+            <div id="user-info" class="user-info"></div>
+            <div class="menu-buttons">
+                <button id="btn-single" class="btn btn-primary">🎮 Single Player</button>
+                <button id="btn-create" class="btn btn-accent">➕ Create Room</button>
+                <button id="btn-join" class="btn btn-secondary">🔗 Join Room</button>
+            </div>
+            <div id="join-container" class="join-container hidden">
+                <input type="text" id="room-code-input" placeholder="Enter room code" maxlength="6" autocomplete="off">
+                <button id="btn-join-confirm" class="btn btn-primary">Join</button>
+                <button id="btn-join-cancel" class="btn btn-ghost">Cancel</button>
+            </div>
+            <p class="footer-text">Play with friends on CrazyGames!</p>
+        </div>
+    </div>
+
+    <!-- Lobby / Waiting Room -->
+    <div id="lobby-screen" class="screen">
+        <div class="lobby-content">
+            <h2>Waiting for Opponent</h2>
+            <div class="room-code-display">
+                <span>Room Code:</span>
+                <span id="room-code" class="code">------</span>
+                <button id="btn-copy-code" class="btn btn-small">📋 Copy</button>
+            </div>
+            <div class="lobby-info">
+                <div class="player-slot">
+                    <span class="player-icon">X</span>
+                    <span id="host-name" class="player-name">You</span>
+                </div>
+                <span class="vs">VS</span>
+                <div class="player-slot">
+                    <span class="player-icon">O</span>
+                    <span id="guest-name" class="player-name">Waiting...</span>
+                </div>
+            </div>
+            <button id="btn-invite" class="btn btn-accent">👥 Invite Friends</button>
+            <button id="btn-leave-lobby" class="btn btn-ghost">Leave Room</button>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen">
+        <div class="game-header">
+            <div id="game-info" class="game-info">
+                <span id="player-x-name" class="player-tag">Player X</span>
+                <span id="turn-indicator" class="turn-indicator">X's Turn</span>
+                <span id="player-o-name" class="player-tag">Player O</span>
+            </div>
+            <div id="game-room-info" class="game-room-info hidden">
+                <span id="game-room-code"></span>
+            </div>
+        </div>
+        <div id="board" class="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+        <div class="game-actions">
+            <button id="btn-back-to-menu" class="btn btn-ghost btn-small">← Menu</button>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="screen">
+        <div class="gameover-content">
+            <h2 id="result-text">You Win!</h2>
+            <p id="result-subtext"></p>
+            <div class="gameover-buttons">
+                <button id="btn-rematch" class="btn btn-accent">🔄 Rematch</button>
+                <button id="btn-back-menu" class="btn btn-secondary">🏠 Main Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection Status -->
+    <div id="conn-status" class="conn-status hidden">
+        <span class="conn-dot"></span>
+        <span id="conn-text">Connecting...</span>
+    </div>
+
+    <!-- CrazyGames SDK -->
+    <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
+    <script src="js/crazygames.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/multiplayer.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

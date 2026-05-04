@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "updatedAt": "2026-05-04T04:11:53.794Z",
+  "entries": {
+    "memory:memory/2026-05-03.md:1:12": {
+      "key": "memory:memory/2026-05-03.md:1:12",
+      "path": "memory/2026-05-03.md",
+      "startLine": 1,
+      "endLine": 12,
+      "source": "memory",
+      "snippet": "# 2026-05-03 ## OpenRouter Guardrails Setup - Sam wants minimal context sent to OpenRouter — no verbose output, no unnecessary file dumps. - Auto-fallback to free models on failure (429, unavailable, etc.). - Fallback order saved in TOOLS.md: Nemotron 3 Super → Qwen3 Next 80B → GPT-OSS 120B → Llama 3.3 70B → Gemma 3 27B → MiniMax M2.5 - Switch via `session_status(model=\"openrouter/...\")` on failure. ## Notes - Confirmed current model: `openrouter/openrouter/owl-alpha` (1.0M context) - Free model limits: 20 req/min, 200 req/day each",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.6330320772207036,
+      "maxScore": 0.6330320772207036,
+      "firstRecalledAt": "2026-05-04T04:08:51.001Z",
+      "lastRecalledAt": "2026-05-04T04:08:51.001Z",
+      "queryHashes": [
+        "a83867ad8397"
+      ],
+      "recallDays": [
+        "2026-05-04"
+      ],
+      "conceptTags": [
+        "gpt",
+        "router",
+        "auto-fallback",
+        "tools.md",
+        "gpt-oss",
+        "3.3",
+        "m2.5",
+        "session-status"
+      ]
+    },
+    "memory:memory/2026-05-03.md:1:27": {
+      "key": "memory:memory/2026-05-03.md:1:27",
+      "path": "memory/2026-05-03.md",
+      "startLine": 1,
+      "endLine": 27,
+      "source": "memory",
+      "snippet": "# 2026-05-03 ## OpenRouter Guardrails Setup - Sam wants minimal context sent to OpenRouter — no verbose output, no unnecessary file dumps. - Auto-fallback to free models on failure (429, unavailable, etc.). - Fallback order saved in TOOLS.md: Nemotron 3 Super → Qwen3 Next 80B → GPT-OSS 120B → Llama 3.3 70B → Gemma 3 27B → MiniMax M2.5 - Switch via `session_status(model=\"openrouter/...\")` on failure. ## Notes - Confirmed current model: `openrouter/openrouter/owl-alpha` (1.0M context) - Free model limits: 20 req/min, 200 req/day each ## Lesson Learned - Got stuck in a loop trying to fix SearXNG 403 (bot detection + limiter.toml + formats config) — Sam never asked me to fix it. - **Rule: Max",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.6312284211777065,
+      "maxScore": 0.6312284211777065,
+      "firstRecalledAt": "2026-05-04T04:11:53.794Z",
+      "lastRecalledAt": "2026-05-04T04:11:53.794Z",
+      "queryHashes": [
+        "2dcad8e01a3e"
+      ],
+      "recallDays": [
+        "2026-05-04"
+      ],
+      "conceptTags": [
+        "gpt",
+        "router",
+        "auto-fallback",
+        "tools.md",
+        "gpt-oss",
+        "3.3",
+        "m2.5",
+        "session-status"
+      ]
+    }
+  }
+}
