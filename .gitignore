@@ -1,0 +1,12 @@
+# Sensitive workspace files - never commit
+.openclaw/
+AGENTS.md
+HEARTBEAT.md
+IDENTITY.md
+MEMORY.md
+SOUL.md
+TOOLS.md
+USER.md
+agents/
+memory/
+tic-tac-toe-planning.md
