@@ -186,6 +186,7 @@
         });
 
         Multiplayer.on('roomCreated', (data) => {
+            console.log('MP: Room created:', data.roomId);
             UI.setRoomCode(data.roomId);
             mySymbol = 'X';
             const username = CG.getUsername() || 'Player';
@@ -207,11 +208,12 @@
             UI.setPlayerNames(hostName, data.symbol === 'O' ? username : 'Waiting...');
 
             if (data.symbol === 'O') {
-                // I joined — update CG room
+                // I joined — update CG room and start the game
                 CG.updateRoom({
                     roomId: data.roomId,
                     isJoinable: false
                 });
+                startGame(true);
             }
         });
 
@@ -247,8 +249,10 @@
         });
 
         Multiplayer.on('rematchRequested', () => {
-            // Auto-accept for simplicity, or show a prompt
-            Multiplayer.acceptRematch();
+            // Only the guest (O) auto-accepts — host already requested
+            if (mySymbol === 'O') {
+                Multiplayer.acceptRematch();
+            }
         });
 
         Multiplayer.on('rematchAccepted', () => {
