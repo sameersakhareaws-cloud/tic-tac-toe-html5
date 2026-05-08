@@ -52,11 +52,11 @@ const Multiplayer = (() => {
 
     // ===== Wager API =====
 
-    function setWager(amount) {
+    function setWager(amount, hostBalance) {
         currentWager = amount;
         hostWagerConfirmed = true;
         guestWagerConfirmed = false;
-        const msg = { type: 'wager_set', roomId: myRoom, amount };
+        const msg = { type: 'wager_set', roomId: myRoom, amount, hostBalance: hostBalance || 0 };
         if (useWS && ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify(msg));
         } else {
@@ -207,7 +207,8 @@ const Multiplayer = (() => {
                 if (mySymbol === 'O' && myRoom === msg.roomId) {
                     currentWager = msg.amount;
                     hostWagerConfirmed = true;
-                    emit('wager_update', { amount: msg.amount, pot: msg.amount * 2, hostConfirmed: true, guestConfirmed: false });
+                    guestBalance = msg.hostBalance || 0;
+                    emit('wager_update', { amount: msg.amount, pot: msg.amount * 2, hostConfirmed: true, guestConfirmed: false, hostBalance: msg.hostBalance || 0 });
                 }
                 break;
             case 'wager_confirm':

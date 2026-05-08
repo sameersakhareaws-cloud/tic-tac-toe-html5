@@ -1056,3 +1056,28 @@ html, body {
     .wager-room-code .code { font-size: 1.2rem; letter-spacing: 3px; }
     .wager-room-code { gap: 8px; padding: 8px 12px; }
 }
+
+/* ===== Lobby Waiting ===== */
+.lobby-waiting {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 10px 20px;
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    color: var(--text-dim);
+}
+
+.lobby-waiting .dots {
+    margin-right: 4px;
+}
+
+.lobby-waiting .dots span {
+    animation: dotPulse 1.4s ease-in-out infinite;
+    opacity: 0;
+    font-weight: 700;
+    color: var(--primary);
+}
+.lobby-waiting .dots span:nth-child(1) { animation-delay: 0s; }
+.lobby-waiting .dots span:nth-child(2) { animation-delay: 0.2s; }
+.lobby-waiting .dots span:nth-child(3) { animation-delay: 0.4s; }

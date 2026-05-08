@@ -207,6 +207,18 @@ const UI = (() => {
         display.lobbyWagerInfo.classList.add('hidden');
     }
 
+    function showLobbyWaiting(text) {
+        const el = document.getElementById('lobby-waiting');
+        const txt = document.getElementById('lobby-waiting-text');
+        if (txt) txt.textContent = text || 'Waiting for opponent';
+        if (el) el.classList.remove('hidden');
+    }
+
+    function hideLobbyWaiting() {
+        const el = document.getElementById('lobby-waiting');
+        if (el) el.classList.add('hidden');
+    }
+
     // ===== Game =====
     function setGameInfo(xName, oName, isMultiplayer) {
         display.playerXName.textContent = xName;

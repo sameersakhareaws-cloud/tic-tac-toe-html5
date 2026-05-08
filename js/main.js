@@ -188,12 +188,13 @@
             trackEvent('game_start', { mode: 'single' });
         });
 
-        // Create room → go to wager screen
+        // Create room → go to lobby (wager screen shows after opponent joins)
         UI.onButton('create', () => {
             isMultiplayer = true;
             const username = CG.getUsername() || 'Player';
             Multiplayer.createRoom(username);
-            showWagerScreen(true);
+            UI.showScreen('lobby');
+            trackEvent('room_created');
         });
 
         // Join room → go to lobby first, then wager screen when room data arrives
@@ -316,13 +317,20 @@
             currentPot = amount * 2;
 
             if (mySymbol === 'X') {
-                // Host sets wager
-                Multiplayer.setWager(amount);
-                UI.showScreen('lobby');
+                // Host sets wager — deduct host's coins, go back to lobby to wait
+                const deducted = Wager.deductWager(amount);
+                if (!deducted) {
+                    UI.showWagerWarning('Not enough coins!');
+                    return;
+                }
+                Multiplayer.setWager(amount, Wager.getBalance());
+                UI.updateCoinDisplay(Wager.getBalance());
                 UI.setLobbyWager(amount, amount * 2);
                 UI.setGameWager(amount * 2);
+                UI.showLobbyWaiting('Waiting for opponent to confirm wager...');
+                UI.showScreen('lobby');
             } else {
-                // Guest confirms wager
+                // Guest confirms wager — deduct guest's coins
                 const deducted = Wager.deductWager(amount);
                 if (!deducted) {
                     UI.showWagerWarning('Not enough coins!');
@@ -488,9 +496,11 @@
         Multiplayer.on('opponentJoined', (data) => {
             const username = CG.getUsername() || 'Player';
             UI.setPlayerNames(username, data.name);
-            // If host and we have a wager set, show lobby with wager info
-            if (mySymbol === 'X' && currentWager > 0) {
-                UI.setLobbyWager(currentWager, currentPot);
+            if (mySymbol === 'X') {
+                showWagerScreen(true);
+            } else {
+                // Guest waits for host to set wager
+                UI.showLobbyWaiting('Waiting for host to set wager...');
             }
         });
 
@@ -499,18 +509,17 @@
             currentWager = data.amount;
             currentPot = data.pot;
             if (mySymbol === 'O') {
-                // Guest sees wager set by host
-                showWagerScreen(false);
-                UI.setWagerScreen(
-                    CG.getUsername() || 'Player', Wager.getBalance(),
-                    'Host', data.hostBalance || 0,
-                    Math.min(Wager.getBalance(), data.amount)
-                );
-                // Pre-set slider to host's wager
+                UI.hideLobbyWaiting();
+                // Guest sees wager screen with host's amount
+                const balance = Wager.getBalance();
+                const maxWager = Math.min(balance, data.amount);
+                // Update slider for guest (must match host's wager)
                 const slider = document.getElementById('wager-slider');
                 slider.value = data.amount;
-                slider.max = Math.min(Wager.getBalance(), data.amount);
+                slider.max = maxWager;
+                slider.min = data.amount;
                 UI.updateWagerDisplay();
+                showWagerScreen(false, data.amount, data.hostBalance || 0);
             }
             UI.setGameWager(data.pot);
         });
@@ -518,14 +527,9 @@
         Multiplayer.on('wager_locked', (data) => {
             currentWager = data.wager;
             currentPot = data.pot;
-            // Deduct host's wager too (guest already deducted on confirm)
-            if (mySymbol === 'X') {
-                Wager.deductWager(data.wager);
-                UI.updateCoinDisplay(Wager.getBalance());
-            }
+            UI.hideLobbyWaiting();
             UI.setLobbyWager(data.wager, data.pot);
             UI.setGameWager(data.pot);
-            // Start the game!
             startGame(true);
         });
 
@@ -540,9 +544,15 @@
                 }
                 UI.showDisconnectModal();
             } else if (UI.getCurrentScreen() === 'lobby' || UI.getCurrentScreen() === 'wager') {
-                // Opponent left during wager — go back to menu
+                // Opponent left during wager — refund if coins were deducted
+                if (currentWager > 0) {
+                    Wager.refundWager(currentWager);
+                    UI.updateCoinDisplay(Wager.getBalance());
+                }
                 currentWager = 0;
                 currentPot = 0;
+                UI.clearLobbyWager();
+                UI.hideLobbyWaiting();
                 UI.showScreen('menu');
             }
             trackEvent('opponent_disconnected');
