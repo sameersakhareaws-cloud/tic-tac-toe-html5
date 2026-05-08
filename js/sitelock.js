@@ -13,6 +13,7 @@ const Sitelock = (() => {
         'preview.crazygames.com',
         'localhost',            // Dev
         '127.0.0.1',           // Dev
+        '145.223.21.59',       // VPS
     ];
 
     function isAllowedDomain() {

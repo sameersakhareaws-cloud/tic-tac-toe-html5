@@ -174,16 +174,20 @@ const UI = (() => {
     }
 
     function showGameOverForResult(winner, isMultiplayer, mySymbol) {
+        const emoji = document.getElementById('result-emoji');
         if (!winner) {
             display.resultText.textContent = "It's a Draw!";
             display.resultSubtext.textContent = "Good game!";
+            emoji.textContent = '🤝';
         } else if (isMultiplayer) {
             const iWon = winner === mySymbol;
-            display.resultText.textContent = iWon ? '🎉 You Win!' : '😔 You Lose';
-            display.resultSubtext.textContent = iWon ? 'Great job!' : 'Better luck next time!';
+            display.resultText.textContent = iWon ? 'You Win!' : 'You Lose';
+            display.resultSubtext.textContent = iWon ? 'Great job! 🎮' : 'Better luck next time!';
+            emoji.textContent = iWon ? '🏆' : '💔';
         } else {
             display.resultText.textContent = `Player ${winner} Wins!`;
             display.resultSubtext.textContent = 'Congratulations!';
+            emoji.textContent = '🎉';
         }
         showScreen('gameover');
     }
@@ -248,6 +252,8 @@ const UI = (() => {
 function showDisconnectModal() {
     const modal = document.getElementById('disconnect-modal');
     if (modal) modal.classList.add('active');
+    const emoji = modal.querySelector('.modal-emoji');
+    if (emoji) emoji.textContent = '😔';
 }
 
 function hideDisconnectModal() {

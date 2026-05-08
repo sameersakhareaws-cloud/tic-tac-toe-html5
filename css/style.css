@@ -65,7 +65,7 @@ html, body {
 
 .loader-content h1 {
     font-size: 2.5rem;
-    margin-bottom: 30px;
+    margin-bottom: 24px;
 }
 
 .spinner {
@@ -75,7 +75,7 @@ html, body {
     border-top-color: var(--primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin: 0 auto 20px;
+    margin: 0 auto 16px;
 }
 
 @keyframes spin {
@@ -85,6 +85,8 @@ html, body {
 #loading-text {
     color: var(--text-dim);
     font-size: 0.9rem;
+    margin-bottom: 12px;
+    min-height: 20px;
 }
 
 /* ===== Menu Screen ===== */
@@ -96,14 +98,15 @@ html, body {
 
 .menu-content h1 {
     font-size: 2.5rem;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .user-info {
-    color: var(--text-dim);
-    font-size: 0.85rem;
-    margin-bottom: 30px;
+    color: var(--secondary);
+    font-size: 0.9rem;
+    margin-bottom: 28px;
     min-height: 20px;
+    font-weight: 500;
 }
 
 .menu-buttons {
@@ -132,23 +135,27 @@ html, body {
 }
 
 .btn:active {
-    transform: scale(0.97);
+    transform: scale(0.96);
 }
 
 .btn-primary {
     background: var(--primary);
 }
 .btn-primary:hover { background: var(--primary-hover); }
+.btn-primary:active { background: var(--primary-hover); }
 
 .btn-accent {
     background: var(--accent);
 }
 .btn-accent:hover { background: var(--accent-hover); }
+.btn-accent:active { background: var(--accent-hover); }
 
 .btn-secondary {
     background: var(--secondary);
+    color: #1a1a2e;
 }
 .btn-secondary:hover { background: var(--secondary-hover); }
+.btn-secondary:active { background: var(--secondary-hover); }
 
 .btn-ghost {
     background: transparent;
@@ -159,10 +166,18 @@ html, body {
     background: var(--bg-hover);
     color: var(--text);
 }
+.btn-ghost:active {
+    background: var(--bg-hover);
+}
 
 .btn-small {
     padding: 8px 16px;
     font-size: 0.85rem;
+}
+
+.btn-large {
+    padding: 18px 36px;
+    font-size: 1.15rem;
 }
 
 /* ===== Join Container ===== */
@@ -201,7 +216,21 @@ html, body {
 
 .lobby-content h2 {
     font-size: 1.8rem;
-    margin-bottom: 30px;
+    margin-bottom: 28px;
+}
+
+/* Animated dots for "Waiting..." */
+.dots span {
+    animation: dotPulse 1.4s ease-in-out infinite;
+    opacity: 0;
+}
+.dots span:nth-child(1) { animation-delay: 0s; }
+.dots span:nth-child(2) { animation-delay: 0.2s; }
+.dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotPulse {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
 }
 
 .room-code-display {
@@ -209,7 +238,7 @@ html, body {
     align-items: center;
     justify-content: center;
     gap: 10px;
-    margin-bottom: 30px;
+    margin-bottom: 28px;
     font-size: 1.1rem;
 }
 
@@ -221,6 +250,7 @@ html, body {
     background: var(--bg-card);
     padding: 8px 20px;
     border-radius: var(--radius);
+    font-family: 'Courier New', monospace;
 }
 
 .lobby-info {
@@ -228,7 +258,7 @@ html, body {
     align-items: center;
     justify-content: center;
     gap: 20px;
-    margin-bottom: 30px;
+    margin-bottom: 28px;
 }
 
 .player-slot {
@@ -239,31 +269,33 @@ html, body {
 }
 
 .player-icon {
-    width: 60px;
-    height: 60px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     font-weight: 700;
     background: var(--bg-card);
 }
 
-.player-icon:first-child {
+.host-icon {
     color: var(--x-color);
     border: 2px solid var(--x-color);
+    box-shadow: 0 0 12px rgba(255, 107, 107, 0.3);
 }
 
-.player-slot:last-child .player-icon {
+.guest-icon {
     color: var(--o-color);
     border: 2px solid var(--o-color);
+    box-shadow: 0 0 12px rgba(78, 205, 196, 0.3);
 }
 
 .player-name {
     font-size: 0.85rem;
     color: var(--text-dim);
-    max-width: 80px;
+    max-width: 90px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -276,10 +308,16 @@ html, body {
 }
 
 /* ===== Game Screen ===== */
+#game-screen {
+    justify-content: flex-start;
+    padding-top: 40px;
+}
+
 .game-header {
     width: 100%;
     max-width: 400px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
+    min-height: 48px;
 }
 
 .game-info {
@@ -289,29 +327,30 @@ html, body {
     padding: 10px 16px;
     background: var(--bg-card);
     border-radius: var(--radius);
+    gap: 8px;
+    height: 40px;
 }
 
 .player-tag {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    padding: 4px 12px;
+    padding: 4px 10px;
     border-radius: 20px;
-}
-
-.player-tag:first-child {
-    background: rgba(255, 107, 107, 0.2);
-    color: var(--x-color);
-}
-
-.player-tag:last-child {
-    background: rgba(78, 205, 196, 0.2);
-    color: var(--o-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100px;
+    text-align: center;
+    flex-shrink: 0;
 }
 
 .turn-indicator {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: var(--text-dim);
+    text-align: center;
+    width: 100px;
+    flex-shrink: 0;
 }
 
 .turn-indicator.x-turn { color: var(--x-color); }
@@ -319,8 +358,8 @@ html, body {
 
 .game-room-info {
     text-align: center;
-    margin-top: 8px;
-    font-size: 0.8rem;
+    margin-top: 6px;
+    font-size: 0.75rem;
     color: var(--text-dim);
 }
 
@@ -328,6 +367,7 @@ html, body {
 .board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
     gap: 8px;
     width: 100%;
     max-width: 360px;
@@ -345,13 +385,23 @@ html, body {
     justify-content: center;
     font-size: 2.5rem;
     font-weight: 700;
+    line-height: 1;
     cursor: pointer;
-    transition: all var(--transition);
-    user-select: none;
+    transition: background 0.15s ease, transform 0.1s ease;
+    overflow: hidden;
+    /* Force perfect square regardless of content */
+    aspect-ratio: 1;
+    width: 100%;
+    min-height: 0;
 }
 
 .cell:hover:not(.taken) {
     background: var(--bg-hover);
+}
+
+.cell:active:not(.taken) {
+    background: var(--bg-hover);
+    transform: scale(0.95);
 }
 
 .cell.taken {
@@ -360,10 +410,12 @@ html, body {
 
 .cell.x {
     color: var(--x-color);
+    text-shadow: 0 0 10px rgba(255, 107, 107, 0.4);
 }
 
 .cell.o {
     color: var(--o-color);
+    text-shadow: 0 0 10px rgba(78, 205, 196, 0.4);
 }
 
 .cell.win {
@@ -378,7 +430,7 @@ html, body {
 
 /* ===== Game Actions ===== */
 .game-actions {
-    margin-top: 20px;
+    margin-top: 16px;
 }
 
 /* ===== Game Over Screen ===== */
@@ -387,14 +439,27 @@ html, body {
     max-width: 400px;
 }
 
+.result-emoji {
+    font-size: 4rem;
+    margin-bottom: 8px;
+    animation: bounceIn 0.5s ease;
+}
+
+@keyframes bounceIn {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
 .gameover-content h2 {
     font-size: 2rem;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .gameover-content p {
     color: var(--text-dim);
-    margin-bottom: 30px;
+    margin-bottom: 28px;
+    font-size: 1rem;
 }
 
 .gameover-buttons {
@@ -442,97 +507,7 @@ html, body {
     50% { opacity: 0.3; }
 }
 
-/* ===== Animations ===== */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.screen.active {
-    animation: fadeIn 0.3s ease;
-}
-
-/* ===== Responsive ===== */
-@media (max-width: 480px) {
-    .menu-content h1, .loader-content h1 {
-        font-size: 2rem;
-    }
-
-    .board {
-        max-width: 300px;
-    }
-
-    .cell {
-        font-size: 2rem;
-    }
-
-    .btn {
-        padding: 12px 24px;
-        font-size: 0.95rem;
-    }
-
-    .lobby-info {
-        gap: 12px;
-    }
-
-    .player-icon {
-        width: 50px;
-        height: 50px;
-        font-size: 1.2rem;
-    }
-}
-
-@media (max-width: 360px) {
-    .board {
-        max-width: 260px;
-    }
-
-    .cell {
-        font-size: 1.6rem;
-    }
-}
-
-/* ===== Ad Overlay ===== */
-.ad-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.85);
-    z-index: 9999;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    pointer-events: all;
-}
-
-.ad-overlay.active {
-    display: flex;
-}
-
-.ad-overlay-content {
-    text-align: center;
-    color: var(--text);
-}
-
-.ad-spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--bg-hover);
-    border-top-color: var(--primary);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 16px;
-}
-
-.ad-overlay-content p {
-    color: var(--text-dim);
-    font-size: 0.9rem;
-}
-
-/* ===== Modal Overlay (Fix 11: Disconnect Modal) ===== */
+/* ===== Modal Overlay ===== */
 .modal-overlay {
     display: none;
     position: fixed;
@@ -553,16 +528,21 @@ html, body {
 .modal-content {
     background: var(--bg-card);
     border-radius: var(--radius);
-    padding: 30px;
+    padding: 32px;
     text-align: center;
     max-width: 360px;
     width: 90%;
     animation: fadeIn 0.3s ease;
 }
 
+.modal-emoji {
+    font-size: 3rem;
+    margin-bottom: 8px;
+}
+
 .modal-content h2 {
     font-size: 1.4rem;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .modal-content p {
@@ -576,24 +556,65 @@ html, body {
     gap: 10px;
 }
 
+/* ===== Ad Overlay ===== */
+.ad-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    pointer-events: all;
+}
+
+.ad-overlay.active {
+    display: flex;
+}
+
+.ad-overlay-content {
+    text-align: center;
+    color: var(--text);
+}
+
+.ad-spinner {
+    width: 44px;
+    height: 44px;
+    border: 3px solid var(--bg-hover);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+}
+
+.ad-overlay-content p {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+}
+
 /* ===== Sound Toggle Button ===== */
 .btn-sound {
     position: fixed;
-    bottom: 10px;
-    right: 10px;
-    width: 36px;
-    height: 36px;
+    bottom: 12px;
+    left: 12px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: var(--bg-card);
     border: 1px solid var(--bg-hover);
     color: var(--text-dim);
-    font-size: 1rem;
+    font-size: 1.1rem;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 50;
     transition: all var(--transition);
+    padding: 0;
 }
 
 .btn-sound:hover {
@@ -601,13 +622,17 @@ html, body {
     color: var(--text);
 }
 
-/* ===== Loading Progress Bar (Fix 14) ===== */
+.btn-sound:active {
+    transform: scale(0.9);
+}
+
+/* ===== Loading Progress Bar ===== */
 .loading-progress-container {
-    width: 200px;
+    width: 180px;
     height: 4px;
     background: var(--bg-hover);
     border-radius: 2px;
-    margin: 16px auto 0;
+    margin: 0 auto;
     overflow: hidden;
 }
 
@@ -619,8 +644,90 @@ html, body {
     transition: width 0.3s ease;
 }
 
-/* ===== Button Sizes (Fix 15) ===== */
-.btn-large {
-    padding: 18px 36px;
-    font-size: 1.15rem;
+/* ===== Animations ===== */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.screen.active {
+    /* No animation to prevent layout jitter during gameplay */
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 480px) {
+    .menu-content h1, .loader-content h1 {
+        font-size: 2rem;
+    }
+
+    .board {
+        max-width: 320px;
+        gap: 6px;
+        padding: 6px;
+    }
+
+    .cell {
+        font-size: clamp(1.6rem, 8vw, 2.2rem);
+        border-radius: 6px;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        font-size: 0.95rem;
+    }
+
+    .btn-large {
+        padding: 16px 32px;
+        font-size: 1.1rem;
+    }
+
+    .lobby-info {
+        gap: 12px;
+    }
+
+    .player-icon {
+        width: 52px;
+        height: 52px;
+        font-size: 1.3rem;
+    }
+
+    .player-name {
+        font-size: 0.8rem;
+        max-width: 70px;
+    }
+
+    .room-code-display .code {
+        font-size: 1.5rem;
+        letter-spacing: 4px;
+        padding: 6px 14px;
+    }
+
+    .game-header {
+        margin-bottom: 12px;
+    }
+
+    .player-tag {
+        font-size: 0.75rem;
+        padding: 3px 8px;
+        width: 80px;
+    }
+
+    .turn-indicator {
+        font-size: 0.8rem;
+        width: 80px;
+    }
+}
+
+@media (max-width: 360px) {
+    .board {
+        max-width: 280px;
+    }
+
+    .cell {
+        font-size: 1.8rem;
+    }
+
+    .menu-content h1, .loader-content h1 {
+        font-size: 1.7rem;
+    }
 }
