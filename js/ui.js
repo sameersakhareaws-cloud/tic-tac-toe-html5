@@ -139,7 +139,7 @@ const UI = (() => {
     }
 
     // ===== Wager Screen =====
-    function setWagerScreen(hostName, hostBalance, guestName, guestBalance, maxWager) {
+    function setWagerScreen(hostName, hostBalance, guestName, guestBalance, maxWager, isGuestMode) {
         display.wagerHostName.textContent = hostName;
         display.wagerHostBalance.textContent = `💰 ${Wager.formatCoins(hostBalance)}`;
         display.wagerGuestName.textContent = guestName || 'Waiting...';
@@ -147,10 +147,21 @@ const UI = (() => {
 
         // Configure slider
         const slider = display.wagerSlider;
-        slider.min = Wager.getMinWager();
-        slider.max = Math.min(maxWager, hostBalance);
         slider.step = Wager.getWagerStep();
-        slider.value = Math.min(50, slider.max);
+
+        if (isGuestMode) {
+            // Guest must match host's exact wager — slider is locked
+            slider.min = maxWager;
+            slider.max = maxWager;
+            slider.value = maxWager;
+            slider.disabled = true;
+        } else {
+            // Host sets the wager freely
+            slider.min = Wager.getMinWager();
+            slider.max = maxWager;
+            slider.value = Math.min(50, maxWager);
+            slider.disabled = false;
+        }
         updateWagerDisplay();
     }
 

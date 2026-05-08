@@ -206,8 +206,11 @@
                 isMultiplayer = true;
                 UI.showScreen('lobby');
                 const username = CG.getUsername() || 'Player';
+                console.log('JOIN: Attempting to join room', code);
                 Multiplayer.joinRoom(code, username);
                 trackEvent('room_join_attempt', { code });
+            } else {
+                console.log('JOIN: Code too short');
             }
         });
 
@@ -426,21 +429,26 @@
     // ===================================================================
     // Wager Screen
     // ===================================================================
-    function showWagerScreen(isHost) {
+    function showWagerScreen(isHost, hostWagerAmount, hostBalance) {
         const username = CG.getUsername() || 'Player';
         const balance = Wager.getBalance();
-        const maxWager = Wager.getMaxWager(balance);
 
-        UI.setWagerScreen(
-            username, balance,
-            isHost ? 'Waiting...' : 'Host',
-            isHost ? null : balance,
-            maxWager
-        );
+        if (isHost) {
+            const maxWager = Wager.getMaxWager(balance);
+            UI.setWagerScreen(username, balance, 'Waiting...', null, maxWager, false);
+            UI.showWagerWarning('');
+        } else {
+            const maxWager = Math.min(balance, hostWagerAmount || balance);
+            UI.setWagerScreen(username, balance, 'Host', hostBalance || 0, maxWager, true);
+            if (balance < hostWagerAmount) {
+                UI.showWagerWarning('Not enough coins! Get more coins to join.');
+            } else {
+                UI.showWagerWarning('');
+            }
+        }
         // Show room code on wager screen
         const roomCode = Multiplayer.getRoom();
         if (roomCode) UI.setWagerRoomCode(roomCode);
-        UI.showWagerWarning('');
         UI.showAdCooldown(Wager.getAdCooldownRemaining());
         UI.showScreen('wager');
     }
@@ -478,28 +486,30 @@
         });
 
         Multiplayer.on('roomJoined', (data) => {
+            console.log('JOIN: Successfully joined room', data.roomId);
             UI.setRoomCode(data.roomId);
             mySymbol = data.symbol;
             const username = CG.getUsername() || 'Player';
             const hostName = data.hostName || 'Host';
             UI.setPlayerNames(hostName, data.symbol === 'O' ? username : 'Waiting...');
             CG.updateRoom({ roomId: data.roomId, isJoinable: false });
-            // Guest waits for wager_set message to show wager screen
         });
 
         Multiplayer.on('joinFailed', (data) => {
-            console.log('Join failed:', data.reason);
+            console.log('JOIN: Failed -', data.reason);
             UI.setPlayerNames('Error: ' + data.reason, '');
             setTimeout(() => UI.showScreen('menu'), 2000);
         });
 
         Multiplayer.on('opponentJoined', (data) => {
+            console.log('JOIN: Opponent joined:', data.name, 'mySymbol:', mySymbol);
             const username = CG.getUsername() || 'Player';
             UI.setPlayerNames(username, data.name);
             if (mySymbol === 'X') {
+                console.log('JOIN: Host showing wager screen');
                 showWagerScreen(true);
             } else {
-                // Guest waits for host to set wager
+                console.log('JOIN: Guest waiting for wager');
                 UI.showLobbyWaiting('Waiting for host to set wager...');
             }
         });
