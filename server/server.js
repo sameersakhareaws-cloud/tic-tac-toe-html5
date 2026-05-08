@@ -39,7 +39,12 @@ function createRoom(hostId, hostName) {
         hostId,
         guestName: null,
         guestId: null,
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        // Wager state
+        wager: 0,
+        wagerHostConfirmed: false,
+        wagerGuestConfirmed: false,
+        wagerLocked: false
     });
     return roomId;
 }
@@ -265,6 +270,41 @@ function handleMessage(playerId, msg) {
             if (room.guestId) {
                 sendToPlayer(room.guestId, 'rematch_accepted');
             }
+            break;
+        }
+
+        case 'wager_set': {
+            const room = rooms.get(msg.roomId);
+            if (!room) {
+                sendTo(player.ws, 'error', { message: 'Room not found' });
+                return;
+            }
+            room.wager = msg.amount;
+            room.wagerHostConfirmed = true;
+            room.wagerGuestConfirmed = false;
+            // Notify guest
+            if (room.guestId) {
+                sendToPlayer(room.guestId, 'wager_set', {
+                    amount: msg.amount,
+                    pot: msg.amount * 2,
+                    hostBalance: msg.hostBalance || 0
+                });
+            }
+            break;
+        }
+
+        case 'wager_confirm': {
+            const room = rooms.get(msg.roomId);
+            if (!room) {
+                sendTo(player.ws, 'error', { message: 'Room not found' });
+                return;
+            }
+            room.wagerGuestConfirmed = true;
+            room.wagerLocked = true;
+            // Notify both players
+            const wagerData = { wager: room.wager, pot: room.wager * 2 };
+            if (room.hostId) sendToPlayer(room.hostId, 'wager_locked', wagerData);
+            if (room.guestId) sendToPlayer(room.guestId, 'wager_locked', wagerData);
             break;
         }
 

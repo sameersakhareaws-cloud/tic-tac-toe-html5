@@ -6,8 +6,14 @@
     <title>Tic-Tac-Toe Online</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
-    <!-- Loading Screen -->
+body>
+    <!-- ===== Coin HUD (visible on all game screens) ===== -->
+    <div id="coin-hud" class="coin-hud hidden">
+        <span class="coin-icon">💰</span>
+        <span id="coin-balance" class="coin-balance">0</span>
+    </div>
+
+    <!-- ===== Loading Screen ===== -->
     <div id="loading-screen" class="screen active">
         <div class="loader-content">
             <h1>⚡ Tic-Tac-Toe</h1>
@@ -19,7 +25,7 @@
         </div>
     </div>
 
-    <!-- Main Menu -->
+    <!-- ===== Main Menu ===== -->
     <div id="menu-screen" class="screen">
         <div class="menu-content">
             <h1>⚡ Tic-Tac-Toe</h1>
@@ -38,7 +44,54 @@
         </div>
     </div>
 
-    <!-- Lobby / Waiting Room -->
+    <!-- ===== Wager Screen ===== -->
+    <div id="wager-screen" class="screen">
+        <div class="wager-content">
+            <h2>Set Wager</h2>
+
+            <div class="wager-players">
+                <div class="wager-player">
+                    <span class="wager-player-icon host-icon">X</span>
+                    <span id="wager-host-name" class="wager-player-name">You</span>
+                    <span id="wager-host-balance" class="wager-player-coins">💰 500</span>
+                </div>
+                <span class="wager-vs">VS</span>
+                <div class="wager-player">
+                    <span class="wager-player-icon guest-icon">O</span>
+                    <span id="wager-guest-name" class="wager-player-name">Opponent</span>
+                    <span id="wager-guest-balance" class="wager-player-coins">💰 --</span>
+                </div>
+            </div>
+
+            <div class="wager-slider-container">
+                <label class="wager-label">Wager Amount</label>
+                <input type="range" id="wager-slider" min="10" max="500" step="25" value="50" class="wager-slider">
+                <div class="wager-slider-labels">
+                    <span>10</span>
+                    <span id="wager-amount-display" class="wager-amount-display">50</span>
+                    <span>500</span>
+                </div>
+            </div>
+
+            <div class="wager-pot">
+                <span class="wager-pot-label">Pot:</span>
+                <span id="wager-pot-amount" class="wager-pot-amount">100</span>
+                <span class="wager-pot-icon">💰</span>
+            </div>
+
+            <div id="wager-warning" class="wager-warning hidden"></div>
+
+            <div class="wager-buttons">
+                <button id="btn-wager-confirm" class="btn btn-accent">✅ Confirm Wager</button>
+                <button id="btn-wager-coins" class="btn btn-secondary">💰 Get Coins</button>
+                <button id="btn-wager-back" class="btn btn-ghost">← Back</button>
+            </div>
+
+            <p id="wager-ad-cooldown" class="wager-ad-cooldown hidden"></p>
+        </div>
+    </div>
+
+    <!-- ===== Lobby / Waiting Room ===== -->
     <div id="lobby-screen" class="screen">
         <div class="lobby-content">
             <h2>Waiting for Opponent<span class="dots"><span>.</span><span>.</span><span>.</span></span></h2>
@@ -58,18 +111,25 @@
                     <span id="guest-name" class="player-name">Waiting...</span>
                 </div>
             </div>
+            <div id="lobby-wager-info" class="lobby-wager-info hidden">
+                <span>Wager: <span id="lobby-wager-amount">0</span> 💰</span>
+                <span>Pot: <span id="lobby-pot-amount">0</span> 💰</span>
+            </div>
             <button id="btn-invite" class="btn btn-accent">👥 Invite Friends</button>
             <button id="btn-leave-lobby" class="btn btn-ghost">Leave Room</button>
         </div>
     </div>
 
-    <!-- Game Screen -->
+    <!-- ===== Game Screen ===== -->
     <div id="game-screen" class="screen">
         <div class="game-header">
             <div id="game-info" class="game-info">
-                <span id="player-x-name" class="player-tag" style="color: var(--x-color); background: rgba(255,107,107,0.15);">Player X</span>
+                <span id="player-x-name" class="player-tag">Player X</span>
                 <span id="turn-indicator" class="turn-indicator">X's Turn</span>
-                <span id="player-o-name" class="player-tag" style="color: var(--o-color); background: rgba(78,205,196,0.15);">Player O</span>
+                <span id="player-o-name" class="player-tag">Player O</span>
+            </div>
+            <div id="game-wager-info" class="game-wager-info hidden">
+                <span>Pot: <span id="game-pot-amount">0</span> 💰</span>
             </div>
             <div id="game-room-info" class="game-room-info hidden">
                 <span id="game-room-code"></span>
@@ -91,26 +151,27 @@
         </div>
     </div>
 
-    <!-- Game Over Screen -->
+    <!-- ===== Game Over Screen ===== -->
     <div id="gameover-screen" class="screen">
         <div class="gameover-content">
             <div id="result-emoji" class="result-emoji"></div>
             <h2 id="result-text">You Win!</h2>
             <p id="result-subtext"></p>
+            <div id="result-coins" class="result-coins"></div>
             <div class="gameover-buttons">
-                <button id="btn-rematch" class="btn btn-accent">🔄 Rematch</button>
+                <button id="btn-rematch" class="btn btn-accent">🔄 New Wager</button>
                 <button id="btn-back-menu" class="btn btn-secondary">🏠 Main Menu</button>
             </div>
         </div>
     </div>
 
-    <!-- Connection Status -->
+    <!-- ===== Connection Status ===== -->
     <div id="conn-status" class="conn-status hidden">
         <span class="conn-dot"></span>
         <span id="conn-text">Connecting...</span>
     </div>
 
-    <!-- Disconnect Modal -->
+    <!-- ===== Disconnect Modal ===== -->
     <div id="disconnect-modal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-emoji">😔</div>
@@ -123,7 +184,7 @@
         </div>
     </div>
 
-    <!-- Ad Overlay -->
+    <!-- ===== Ad Overlay ===== -->
     <div id="ad-overlay" class="ad-overlay">
         <div class="ad-overlay-content">
             <div class="ad-spinner"></div>
@@ -131,15 +192,19 @@
         </div>
     </div>
 
-    <!-- Sound Toggle -->
+    <!-- ===== Sound Toggle ===== -->
     <button id="btn-sound" class="btn-sound" title="Toggle Sound">🔊</button>
 
-    <!-- Sitelock -->
-    <script src="js/sitelock.js"></script>
+    <!-- ===== Coin Win Animation Overlay ===== -->
+    <div id="coin-win-overlay" class="coin-win-overlay hidden">
+        <div id="coin-win-flyer" class="coin-win-flyer">+0 💰</div>
+    </div>
 
-    <!-- CrazyGames SDK -->
+    <!-- Scripts -->
+    <script src="js/sitelock.js"></script>
     <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
     <script src="js/crazygames.js"></script>
+    <script src="js/wager.js"></script>
     <script src="js/game.js"></script>
     <script src="js/multiplayer.js"></script>
     <script src="js/ui.js"></script>

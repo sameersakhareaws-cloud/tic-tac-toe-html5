@@ -2,16 +2,15 @@
  * UI module — all DOM manipulation and screen transitions
  */
 const UI = (() => {
-    // Screen elements
     const screens = {
         loading: document.getElementById('loading-screen'),
         menu: document.getElementById('menu-screen'),
+        wager: document.getElementById('wager-screen'),
         lobby: document.getElementById('lobby-screen'),
         game: document.getElementById('game-screen'),
         gameover: document.getElementById('gameover-screen')
     };
 
-    // Button elements
     const buttons = {
         single: document.getElementById('btn-single'),
         create: document.getElementById('btn-create'),
@@ -23,10 +22,12 @@ const UI = (() => {
         leaveLobby: document.getElementById('btn-leave-lobby'),
         backToMenu: document.getElementById('btn-back-to-menu'),
         rematch: document.getElementById('btn-rematch'),
-        backMenu: document.getElementById('btn-back-menu')
+        backMenu: document.getElementById('btn-back-menu'),
+        wagerConfirm: document.getElementById('btn-wager-confirm'),
+        wagerCoins: document.getElementById('btn-wager-coins'),
+        wagerBack: document.getElementById('btn-wager-back')
     };
 
-    // Display elements
     const display = {
         loadingText: document.getElementById('loading-text'),
         userInfo: document.getElementById('user-info'),
@@ -40,47 +41,92 @@ const UI = (() => {
         turnIndicator: document.getElementById('turn-indicator'),
         gameRoomInfo: document.getElementById('game-room-info'),
         gameRoomCode: document.getElementById('game-room-code'),
+        gamePotAmount: document.getElementById('game-pot-amount'),
+        gameWagerInfo: document.getElementById('game-wager-info'),
         resultText: document.getElementById('result-text'),
         resultSubtext: document.getElementById('result-subtext'),
+        resultCoins: document.getElementById('result-coins'),
+        resultEmoji: document.getElementById('result-emoji'),
         connStatus: document.getElementById('conn-status'),
         connText: document.getElementById('conn-text'),
-        board: document.getElementById('board')
+        board: document.getElementById('board'),
+        // Wager screen
+        wagerHostName: document.getElementById('wager-host-name'),
+        wagerHostBalance: document.getElementById('wager-host-balance'),
+        wagerGuestName: document.getElementById('wager-guest-name'),
+        wagerGuestBalance: document.getElementById('wager-guest-balance'),
+        wagerSlider: document.getElementById('wager-slider'),
+        wagerAmountDisplay: document.getElementById('wager-amount-display'),
+        wagerPotAmount: document.getElementById('wager-pot-amount'),
+        wagerWarning: document.getElementById('wager-warning'),
+        wagerAdCooldown: document.getElementById('wager-ad-cooldown'),
+        // Lobby wager
+        lobbyWagerInfo: document.getElementById('lobby-wager-info'),
+        lobbyWagerAmount: document.getElementById('lobby-wager-amount'),
+        lobbyPotAmount: document.getElementById('lobby-pot-amount'),
+        // Coin HUD
+        coinHud: document.getElementById('coin-hud'),
+        coinBalance: document.getElementById('coin-balance'),
+        // Coin win animation
+        coinWinOverlay: document.getElementById('coin-win-overlay'),
+        coinWinFlyer: document.getElementById('coin-win-flyer')
     };
 
     let buttonCallbacks = {};
     let currentScreenName = 'loading';
+    let ghostPlayer = 'X';
 
     function showScreen(name) {
         Object.values(screens).forEach(s => s.classList.remove('active'));
-        if (screens[name]) {
-            screens[name].classList.add('active');
-        }
+        if (screens[name]) screens[name].classList.add('active');
         currentScreenName = name;
+
+        // Show/hide coin HUD on game screens
+        const showHud = ['lobby', 'game', 'wager', 'gameover'].includes(name);
+        display.coinHud.classList.toggle('hidden', !showHud);
     }
 
-    function getCurrentScreen() {
-        return currentScreenName;
-    }
+    function getCurrentScreen() { return currentScreenName; }
 
-    // ===== Ad Overlay (Fix 4: full UI block during ads) =====
+    // ===== Ad Overlay =====
     function showAdOverlay() {
-        const overlay = document.getElementById('ad-overlay');
-        if (overlay) overlay.classList.add('active');
+        const el = document.getElementById('ad-overlay');
+        if (el) el.classList.add('active');
     }
-
     function hideAdOverlay() {
-        const overlay = document.getElementById('ad-overlay');
-        if (overlay) overlay.classList.remove('active');
+        const el = document.getElementById('ad-overlay');
+        if (el) el.classList.remove('active');
     }
 
-    function setLoadingText(text) {
-        display.loadingText.textContent = text;
+    // ===== Loading =====
+    function setLoadingText(text) { display.loadingText.textContent = text; }
+    function setUserInfo(text) { display.userInfo.textContent = text; }
+
+    function setLoadingProgress(percent) {
+        const bar = document.getElementById('loading-progress-bar');
+        if (bar) bar.style.width = Math.min(100, Math.max(0, percent)) + '%';
     }
 
-    function setUserInfo(text) {
-        display.userInfo.textContent = text;
+    // ===== Coin HUD =====
+    function updateCoinDisplay(balance) {
+        display.coinBalance.textContent = Wager.formatCoins(balance);
     }
 
+    function pulseCoinHud() {
+        display.coinHud.classList.remove('pulse');
+        void display.coinHud.offsetWidth; // force reflow
+        display.coinHud.classList.add('pulse');
+    }
+
+    function showCoinWinAnimation(amount) {
+        display.coinWinFlyer.textContent = `+${amount} 💰`;
+        display.coinWinOverlay.classList.remove('hidden');
+        setTimeout(() => {
+            display.coinWinOverlay.classList.add('hidden');
+        }, 1500);
+    }
+
+    // ===== Join =====
     function toggleJoinContainer(show) {
         if (show) {
             display.joinContainer.classList.remove('hidden');
@@ -91,6 +137,49 @@ const UI = (() => {
         }
     }
 
+    // ===== Wager Screen =====
+    function setWagerScreen(hostName, hostBalance, guestName, guestBalance, maxWager) {
+        display.wagerHostName.textContent = hostName;
+        display.wagerHostBalance.textContent = `💰 ${Wager.formatCoins(hostBalance)}`;
+        display.wagerGuestName.textContent = guestName || 'Waiting...';
+        display.wagerGuestBalance.textContent = guestBalance !== null ? `💰 ${Wager.formatCoins(guestBalance)}` : '💰 --';
+
+        // Configure slider
+        const slider = display.wagerSlider;
+        slider.min = Wager.getMinWager();
+        slider.max = Math.min(maxWager, hostBalance);
+        slider.step = Wager.getWagerStep();
+        slider.value = Math.min(50, slider.max);
+        updateWagerDisplay();
+    }
+
+    function updateWagerDisplay() {
+        const amount = parseInt(display.wagerSlider.value, 10);
+        display.wagerAmountDisplay.textContent = amount;
+        display.wagerPotAmount.textContent = amount * 2;
+    }
+
+    function getWagerAmount() {
+        return parseInt(display.wagerSlider.value, 10);
+    }
+
+    function showWagerWarning(msg) {
+        display.wagerWarning.textContent = msg;
+        display.wagerWarning.classList.toggle('hidden', !msg);
+    }
+
+    function showAdCooldown(remainingSec) {
+        if (remainingSec > 0) {
+            const mins = Math.floor(remainingSec / 60);
+            const secs = remainingSec % 60;
+            display.wagerAdCooldown.textContent = `Next ad available in ${mins}:${secs.toString().padStart(2, '0')}`;
+            display.wagerAdCooldown.classList.remove('hidden');
+        } else {
+            display.wagerAdCooldown.classList.add('hidden');
+        }
+    }
+
+    // ===== Lobby =====
     function setRoomCode(code) {
         display.roomCode.textContent = code;
         display.gameRoomCode.textContent = `Room: ${code}`;
@@ -101,33 +190,79 @@ const UI = (() => {
         display.guestName.textContent = guestName;
     }
 
+    function setLobbyWager(wagerAmount, potAmount) {
+        display.lobbyWagerAmount.textContent = wagerAmount;
+        display.lobbyPotAmount.textContent = potAmount;
+        display.lobbyWagerInfo.classList.remove('hidden');
+    }
+
+    function clearLobbyWager() {
+        display.lobbyWagerInfo.classList.add('hidden');
+    }
+
+    // ===== Game =====
     function setGameInfo(xName, oName, isMultiplayer) {
         display.playerXName.textContent = xName;
         display.playerOName.textContent = oName;
         display.gameRoomInfo.classList.toggle('hidden', !isMultiplayer);
     }
 
+    function setGameWager(potAmount) {
+        display.gamePotAmount.textContent = potAmount;
+        display.gameWagerInfo.classList.toggle('hidden', !potAmount);
+    }
+
     function setTurnIndicator(currentPlayer, mySymbol, isMultiplayer) {
         if (isMultiplayer) {
             const isMyTurn = currentPlayer === mySymbol;
             display.turnIndicator.textContent = isMyTurn ? 'Your Turn' : "Opponent's Turn";
-            display.turnIndicator.className = `turn-indicator ${currentPlayer.toLowerCase()}-turn`;
         } else {
             display.turnIndicator.textContent = `${currentPlayer}'s Turn`;
-            display.turnIndicator.className = `turn-indicator ${currentPlayer.toLowerCase()}-turn`;
         }
+        display.turnIndicator.className = `turn-indicator ${currentPlayer.toLowerCase()}-turn`;
+
+        // Active player highlight
+        const xTag = display.playerXName;
+        const oTag = display.playerOName;
+        xTag.classList.remove('active', 'x-active', 'o-active');
+        oTag.classList.remove('active', 'x-active', 'o-active');
+
+        if (currentPlayer === 'X') {
+            xTag.classList.add('active', 'x-active');
+        } else {
+            oTag.classList.add('active', 'o-active');
+        }
+
+        // Dim board on opponent's turn
+        if (isMultiplayer) {
+            const isMyTurn = currentPlayer === mySymbol;
+            display.board.classList.toggle('dimmed', !isMyTurn);
+        } else {
+            display.board.classList.remove('dimmed');
+        }
+
+        ghostPlayer = currentPlayer;
     }
 
     function renderBoard(board, winLine) {
         const cells = display.board.querySelectorAll('.cell');
+        const winSet = winLine ? new Set(winLine) : null;
+
         cells.forEach((cell, i) => {
-            cell.textContent = board[i] || '';
+            const mark = board[i];
+            cell.textContent = mark || '';
             cell.className = 'cell';
-            if (board[i]) {
-                cell.classList.add('taken', board[i].toLowerCase());
-            }
-            if (winLine && winLine.includes(i)) {
-                cell.classList.add('win');
+            cell.removeAttribute('data-ghost');
+
+            if (mark) {
+                cell.classList.add('taken', mark.toLowerCase());
+                if (winSet && winSet.has(i)) {
+                    cell.classList.add('win');
+                } else if (winLine) {
+                    cell.classList.add('loser');
+                }
+            } else {
+                cell.setAttribute('data-ghost', ghostPlayer);
             }
         });
     }
@@ -137,9 +272,12 @@ const UI = (() => {
         cells.forEach(cell => {
             cell.textContent = '';
             cell.className = 'cell';
+            cell.removeAttribute('data-ghost');
         });
+        display.board.classList.remove('dimmed');
     }
 
+    // ===== Connection =====
     function setConnectionStatus(state) {
         display.connStatus.classList.remove('hidden', 'connected', 'error');
         switch (state) {
@@ -158,111 +296,89 @@ const UI = (() => {
         }
     }
 
-    function showGameOver(result, isMultiplayer) {
-        if (result.draw) {
-            display.resultText.textContent = "It's a Draw!";
-            display.resultSubtext.textContent = "Good game!";
-        } else if (isMultiplayer) {
-            const iWon = result.winner === 'X';
-            display.resultText.textContent = iWon ? '🎉 You Win!' : '😔 You Lose';
-            display.resultSubtext.textContent = iWon ? 'Great job!' : 'Better luck next time!';
-        } else {
-            display.resultText.textContent = `Player ${result.winner} Wins!`;
-            display.resultSubtext.textContent = 'Congratulations!';
-        }
-        showScreen('gameover');
-    }
+    // ===== Game Over =====
+    function showGameOverForResult(winner, isMultiplayer, mySymbol, coinChange) {
+        const emoji = display.resultEmoji;
+        const coins = display.resultCoins;
 
-    function showGameOverForResult(winner, isMultiplayer, mySymbol) {
-        const emoji = document.getElementById('result-emoji');
         if (!winner) {
             display.resultText.textContent = "It's a Draw!";
-            display.resultSubtext.textContent = "Good game!";
+            display.resultSubtext.textContent = 'Your wager has been refunded.';
             emoji.textContent = '🤝';
+            coins.textContent = '±0 💰';
+            coins.className = 'result-coins draw';
         } else if (isMultiplayer) {
             const iWon = winner === mySymbol;
             display.resultText.textContent = iWon ? 'You Win!' : 'You Lose';
-            display.resultSubtext.textContent = iWon ? 'Great job! 🎮' : 'Better luck next time!';
+            display.resultSubtext.textContent = iWon ? 'Congratulations! 🎮' : 'Better luck next time!';
             emoji.textContent = iWon ? '🏆' : '💔';
+            if (iWon) {
+                coins.textContent = `+${coinChange} 💰`;
+                coins.className = 'result-coins win';
+            } else {
+                coins.textContent = `-${Math.abs(coinChange)} 💰`;
+                coins.className = 'result-coins lose';
+            }
         } else {
             display.resultText.textContent = `Player ${winner} Wins!`;
             display.resultSubtext.textContent = 'Congratulations!';
             emoji.textContent = '🎉';
+            coins.textContent = '';
+            coins.className = 'result-coins';
         }
         showScreen('gameover');
     }
 
-    // ===== Event Binding =====
+    // ===== Disconnect Modal =====
+    function showDisconnectModal() {
+        const modal = document.getElementById('disconnect-modal');
+        if (modal) {
+            modal.classList.add('active');
+            const emoji = modal.querySelector('.modal-emoji');
+            if (emoji) emoji.textContent = '😔';
+        }
+    }
+    function hideDisconnectModal() {
+        const modal = document.getElementById('disconnect-modal');
+        if (modal) modal.classList.remove('active');
+    }
 
+    // ===== Event Binding =====
     function onButton(id, callback) {
         buttonCallbacks[id] = callback;
-        if (buttons[id]) {
-            buttons[id].addEventListener('click', callback);
-        }
+        if (buttons[id]) buttons[id].addEventListener('click', callback);
     }
 
     function onCellClick(callback) {
         display.board.addEventListener('click', (e) => {
             const cell = e.target.closest('.cell');
-            if (cell) {
-                const index = parseInt(cell.dataset.index);
-                callback(index);
-            }
+            if (cell) callback(parseInt(cell.dataset.index));
         });
     }
 
-    // Auto-uppercase room code input
     display.roomCodeInput.addEventListener('input', () => {
         display.roomCodeInput.value = display.roomCodeInput.value.toUpperCase();
     });
-
-    // Enter key on room code input
     display.roomCodeInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            buttons.joinConfirm.click();
-        }
+        if (e.key === 'Enter') buttons.joinConfirm.click();
     });
 
+    // Wager slider listener
+    if (display.wagerSlider) {
+        display.wagerSlider.addEventListener('input', updateWagerDisplay);
+    }
+
     return {
-        showScreen,
-        getCurrentScreen,
-        showAdOverlay,
-        hideAdOverlay,
-        setLoadingText,
-        setUserInfo,
+        showScreen, getCurrentScreen,
+        showAdOverlay, hideAdOverlay,
+        setLoadingText, setUserInfo, setLoadingProgress,
+        updateCoinDisplay, pulseCoinHud, showCoinWinAnimation,
         toggleJoinContainer,
-        setRoomCode,
-        setPlayerNames,
-        setGameInfo,
-        setTurnIndicator,
-        renderBoard,
-        clearBoard,
-        setConnectionStatus,
-        showGameOver,
-        showGameOverForResult,
-        onButton,
-        setLoadingProgress,
-        showDisconnectModal,
-        hideDisconnectModal,
-        onCellClick
+        setWagerScreen, updateWagerDisplay, getWagerAmount, showWagerWarning, showAdCooldown,
+        setRoomCode, setPlayerNames, setLobbyWager, clearLobbyWager,
+        setGameInfo, setGameWager, setTurnIndicator, renderBoard, clearBoard,
+        setConnectionStatus, showGameOverForResult,
+        onButton, onCellClick,
+        showDisconnectModal, hideDisconnectModal
     };
 })();
-
-// ===== Disconnect Modal (Fix 11) =====
-function showDisconnectModal() {
-    const modal = document.getElementById('disconnect-modal');
-    if (modal) modal.classList.add('active');
-    const emoji = modal.querySelector('.modal-emoji');
-    if (emoji) emoji.textContent = '😔';
-}
-
-function hideDisconnectModal() {
-    const modal = document.getElementById('disconnect-modal');
-    if (modal) modal.classList.remove('active');
-}
-
-// ===== Loading Progress (Fix 14) =====
-function setLoadingProgress(percent) {
-    const bar = document.getElementById('loading-progress-bar');
-    if (bar) bar.style.width = Math.min(100, Math.max(0, percent)) + '%';
-}

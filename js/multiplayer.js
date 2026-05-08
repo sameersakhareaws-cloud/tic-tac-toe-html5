@@ -1,14 +1,15 @@
 /**
- * Multiplayer module — handles room creation, joining, and move relay.
+ * Multiplayer module — handles room creation, joining, move relay, and wagers.
  *
  * Two modes:
  *   1. WebSocket (production) — cross-network play via WS server
  *   2. Local (dev/fallback) — same-origin cross-tab via localStorage events
  *
- * connect() ALWAYS resolves — falls back to local mode if WS fails.
- *
- * SHOULD-DO FIXES:
- * 8. Rematch keeps room alive, updates room data for invite continuity
+ * Wager flow:
+ *   1. Host sets wager → wager_set message
+ *   2. Guest sees wager → confirms → wager_confirm message
+ *   3. Both confirmed → wager_locked → game starts
+ *   4. Game ends → winner gets pot
  */
 const Multiplayer = (() => {
     let ws = null;
@@ -18,6 +19,12 @@ const Multiplayer = (() => {
     let myName = 'Player';
     let useWS = false;
     const listeners = {};
+
+    // Wager state
+    let currentWager = 0;
+    let hostWagerConfirmed = false;
+    let guestWagerConfirmed = false;
+    let guestBalance = null;
 
     const WS_URL = 'ws://' + window.location.hostname + ':3002';
     const WS_TIMEOUT = 3000;
@@ -43,12 +50,56 @@ const Multiplayer = (() => {
         }
     }
 
+    // ===== Wager API =====
+
+    function setWager(amount) {
+        currentWager = amount;
+        hostWagerConfirmed = true;
+        guestWagerConfirmed = false;
+        const msg = { type: 'wager_set', roomId: myRoom, amount };
+        if (useWS && ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(msg));
+        } else {
+            localSend(msg);
+        }
+    }
+
+    function confirmWager() {
+        guestWagerConfirmed = true;
+        const msg = { type: 'wager_confirm', roomId: myRoom };
+        if (useWS && ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(msg));
+        } else {
+            localSend(msg);
+            // In local mode, check if both confirmed
+            if (hostWagerConfirmed) {
+                emit('wager_locked', { wager: currentWager, pot: currentWager * 2 });
+            }
+        }
+    }
+
+    function getWagerState() {
+        return {
+            amount: currentWager,
+            hostConfirmed: hostWagerConfirmed,
+            guestConfirmed: guestWagerConfirmed,
+            pot: currentWager * 2,
+            guestBalance: guestBalance
+        };
+    }
+
+    function resetWager() {
+        currentWager = 0;
+        hostWagerConfirmed = false;
+        guestWagerConfirmed = false;
+        guestBalance = null;
+    }
+
     // ===== Connection =====
 
     function connect() {
         return new Promise((resolve) => {
             emit('connectionChange', { state: 'connecting' });
-
             let resolved = false;
             let localStarted = false;
 
@@ -71,16 +122,11 @@ const Multiplayer = (() => {
                 done('local');
             }
 
-            try {
-                ws = new WebSocket(WS_URL);
-            } catch (e) {
-                startLocalMode('WebSocket constructor failed: ' + e.message);
-                return;
-            }
+            try { ws = new WebSocket(WS_URL); }
+            catch (e) { startLocalMode('WebSocket constructor failed: ' + e.message); return; }
 
             const timeout = setTimeout(() => {
                 if (!resolved) {
-                    console.log('MP: WebSocket timeout after ' + WS_TIMEOUT + 'ms');
                     try { ws.close(); } catch (e) {}
                     ws = null;
                     startLocalMode('timeout');
@@ -157,6 +203,20 @@ const Multiplayer = (() => {
                     emit('roomJoined', { roomId: myRoom, symbol: 'O', hostName: msg.hostName });
                 }
                 break;
+            case 'wager_set':
+                if (mySymbol === 'O' && myRoom === msg.roomId) {
+                    currentWager = msg.amount;
+                    hostWagerConfirmed = true;
+                    emit('wager_update', { amount: msg.amount, pot: msg.amount * 2, hostConfirmed: true, guestConfirmed: false });
+                }
+                break;
+            case 'wager_confirm':
+                if (mySymbol === 'X' && myRoom === msg.roomId) {
+                    guestWagerConfirmed = true;
+                    emit('wager_update', { amount: currentWager, pot: currentWager * 2, hostConfirmed: true, guestConfirmed: true });
+                    emit('wager_locked', { wager: currentWager, pot: currentWager * 2 });
+                }
+                break;
             case 'move':
                 if (isForMyRoom && msg.player !== mySymbol) {
                     emit('move', { cell: msg.cell, player: msg.player });
@@ -188,18 +248,20 @@ const Multiplayer = (() => {
             case 'room_created':
                 myRoom = msg.roomId;
                 mySymbol = 'X';
+                resetWager();
                 emit('roomCreated', { roomId: msg.roomId, symbol: 'X' });
                 break;
             case 'room_joined':
                 myRoom = msg.roomId;
                 mySymbol = msg.symbol;
+                resetWager();
                 emit('roomJoined', { roomId: msg.roomId, symbol: msg.symbol, hostName: msg.hostName });
                 break;
             case 'join_failed':
                 emit('joinFailed', { reason: msg.reason });
                 break;
             case 'opponent_joined':
-                emit('opponentJoined', { name: msg.name });
+                emit('opponentJoined', { name: msg.name, balance: msg.balance });
                 break;
             case 'opponent_left':
                 emit('opponentLeft', {});
@@ -212,6 +274,25 @@ const Multiplayer = (() => {
                 break;
             case 'rematch_accepted':
                 emit('rematchAccepted', {});
+                break;
+            case 'wager_set':
+                if (mySymbol === 'O') {
+                    currentWager = msg.amount;
+                    hostWagerConfirmed = true;
+                    guestBalance = msg.hostBalance;
+                    emit('wager_update', { amount: msg.amount, pot: msg.amount * 2, hostConfirmed: true, guestConfirmed: false });
+                }
+                break;
+            case 'wager_confirm':
+                if (mySymbol === 'X') {
+                    guestWagerConfirmed = true;
+                    emit('wager_update', { amount: currentWager, pot: currentWager * 2, hostConfirmed: true, guestConfirmed: true });
+                    emit('wager_locked', { wager: currentWager, pot: currentWager * 2 });
+                }
+                break;
+            case 'wager_locked':
+                // Server confirmed both wagers locked
+                emit('wager_locked', { wager: msg.wager, pot: msg.pot });
                 break;
             case 'error':
                 emit('error', { message: msg.message });
@@ -242,6 +323,7 @@ const Multiplayer = (() => {
         myName = playerName || 'Player';
         myRoom = generateRoomCode();
         mySymbol = 'X';
+        resetWager();
         console.log('MP: Creating room', myRoom, 'mode:', useWS ? 'ws' : 'local');
         if (useWS) {
             send({ type: 'create_room', name: myName });
@@ -256,6 +338,7 @@ const Multiplayer = (() => {
         myName = playerName || 'Player';
         myRoom = roomCode.toUpperCase();
         mySymbol = 'O';
+        resetWager();
         console.log('MP: Joining room', myRoom, 'mode:', useWS ? 'ws' : 'local');
         if (useWS) {
             send({ type: 'join_room', roomId: myRoom, name: myName });
@@ -273,7 +356,6 @@ const Multiplayer = (() => {
         }
     }
 
-    // Fix 8: Rematch keeps room alive — don't clear myRoom/mySymbol
     function requestRematch() {
         if (useWS) {
             send({ type: 'rematch_request', roomId: myRoom });
@@ -291,7 +373,6 @@ const Multiplayer = (() => {
         }
     }
 
-    // Fix 8: leaveRoom only clears state when explicitly leaving (not on rematch)
     function leaveRoom() {
         if (myRoom) {
             if (useWS) {
@@ -302,6 +383,7 @@ const Multiplayer = (() => {
             console.log('MP: Left room', myRoom);
             myRoom = null;
             mySymbol = null;
+            resetWager();
         }
     }
 
@@ -314,6 +396,7 @@ const Multiplayer = (() => {
         connect, on, off,
         createRoom, joinRoom, sendMove,
         requestRematch, acceptRematch, leaveRoom,
+        setWager, confirmWager, getWagerState, resetWager,
         isConnected, getRoom, getSymbol, getName
     };
 })();

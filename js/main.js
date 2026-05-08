@@ -1,13 +1,13 @@
 /**
- * Main entry point
- * Orchestrates all modules
- *
- * SHOULD-DO FIXES APPLIED:
- * 8.  Rematch keeps room alive, updates CG room data for invite continuity
- * 9.  Sound effects (click, win, lose, draw) using Web Audio API
- * 10. Username display from CG user module
- * 11. Opponent disconnect modal with rematch/menu actions
- * 12. ByteBrew analytics integration
+ * Main entry point — orchestrates all modules
+ * 
+ * Wager flow for multiplayer:
+ * 1. Host clicks "Create Room" → goes to wager screen
+ * 2. Host sets wager amount, confirms → goes to lobby
+ * 3. Guest joins → sees wager screen with host's amount
+ * 4. Guest confirms wager → both locked → game starts
+ * 5. Winner gets pot, loser loses wager
+ * 6. Rematch → goes back to wager screen
  */
 (function() {
     // ===== State =====
@@ -17,9 +17,11 @@
     let joinRoomCallback = null;
     let audioContext = null;
     let bytebrewReady = false;
+    let currentWager = 0;
+    let currentPot = 0;
 
     // ===================================================================
-    // Fix 9: Sound Effects (Web Audio API — no external files needed)
+    // Sound Effects
     // ===================================================================
     const Sound = (() => {
         let ctx = null;
@@ -29,9 +31,7 @@
             if (!ctx) {
                 try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
             }
-            if (ctx && ctx.state === 'suspended') {
-                ctx.resume().catch(() => {});
-            }
+            if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
             return ctx;
         }
 
@@ -57,25 +57,21 @@
         function playWin()   { playTone(523, 0.15, 'sine', 0.12); setTimeout(() => playTone(659, 0.15, 'sine', 0.12), 150); setTimeout(() => playTone(784, 0.25, 'sine', 0.15), 300); }
         function playLose()  { playTone(300, 0.2, 'sawtooth', 0.08); setTimeout(() => playTone(250, 0.3, 'sawtooth', 0.08), 200); }
         function playDraw()  { playTone(440, 0.15, 'triangle', 0.1); setTimeout(() => playTone(440, 0.15, 'triangle', 0.1), 200); setTimeout(() => playTone(440, 0.3, 'triangle', 0.1), 400); }
+        function playCoin()  { playTone(880, 0.1, 'sine', 0.1); setTimeout(() => playTone(1100, 0.15, 'sine', 0.12), 100); }
         function toggleMute() { muted = !muted; return muted; }
         function isMuted() { return muted; }
 
-        return { playClick, playWin, playLose, playDraw, toggleMute, isMuted, ensureContext };
+        return { playClick, playWin, playLose, playDraw, playCoin, toggleMute, isMuted, ensureContext };
     })();
 
     // ===================================================================
-    // Fix 12: ByteBrew Analytics
+    // ByteBrew Analytics
     // ===================================================================
     function initByteBrew() {
-        // ByteBrew SDK — loads async, initialize if available
-        // Replace YOUR_GAME_ID with your actual ByteBrew game ID after registering
         const BYTEBREW_GAME_ID = '07qjah_u6';
         const BYTEBREW_API_KEY = '4FeOqvSn6LqB7Qnow93kff5v4BXkj/1q8UJgu8Iw3UJJFP0QW4fJpT5UGL98/aFb';
 
-        if (!BYTEBREW_GAME_ID || !BYTEBREW_API_KEY) {
-            console.log('ByteBrew: No credentials set — analytics disabled');
-            return;
-        }
+        if (!BYTEBREW_GAME_ID || !BYTEBREW_API_KEY) return;
 
         const script = document.createElement('script');
         script.src = 'https://web.sdk.bytebrew.io/bytebrew.js';
@@ -85,7 +81,6 @@
                 if (window.ByteBrew) {
                     window.ByteBrew.Init(BYTEBREW_GAME_ID, BYTEBREW_API_KEY);
                     bytebrewReady = true;
-                    console.log('ByteBrew initialized');
                 }
             } catch (e) { console.log('ByteBrew init error:', e); }
         };
@@ -100,7 +95,7 @@
     }
 
     // ===================================================================
-    // Ad Lifecycle Hooks
+    // Ad Lifecycle
     // ===================================================================
     window.onAdStarted = function() {
         adPaused = true;
@@ -111,9 +106,7 @@
     window.onAdFinished = function() {
         adPaused = false;
         UI.hideAdOverlay();
-        if (UI.getCurrentScreen() === 'game') {
-            CG.gameplayStart();
-        }
+        if (UI.getCurrentScreen() === 'game') CG.gameplayStart();
     };
 
     // ===================================================================
@@ -134,20 +127,21 @@
     // Initialization
     // ===================================================================
     async function init() {
-        // Fix 13: Sitelock — redirect if not on allowed domain
-        if (typeof Sitelock !== "undefined" && !Sitelock.enforce()) return;
+        if (typeof Sitelock !== 'undefined' && !Sitelock.enforce()) return;
         setupIOSAudioResume();
         CG.loadingStart();
         UI.setLoadingText('Initializing...');
         UI.setLoadingProgress(10);
 
-        // Fix 12: Initialize ByteBrew
         initByteBrew();
+
+        // Init wager system
+        await Wager.init();
+        UI.updateCoinDisplay(Wager.getBalance());
 
         UI.setLoadingProgress(40);
         await CG.init();
 
-        // Fix 10: Display CG username
         const username = CG.getUsername();
         if (username) {
             UI.setUserInfo(`Playing as: ${username}`);
@@ -155,31 +149,29 @@
             UI.setUserInfo('Guest Player');
         }
 
-        // Check invite / instant MP
         const inviteParams = CG.getInviteParams();
         const inviteRoomId = inviteParams && (inviteParams.roomId || inviteParams.room);
         const instantMP = CG.isInstantMultiplayer();
 
         UI.setLoadingText('Connecting to server...');
         UI.setLoadingProgress(60);
-        UI.setLoadingProgress(80);
         await Multiplayer.connect();
         setupMultiplayerListeners();
-
         UI.setLoadingProgress(100);
         CG.loadingStop();
 
         if (inviteRoomId) {
+            isMultiplayer = true;
             UI.showScreen('lobby');
             Multiplayer.joinRoom(inviteRoomId, username || 'Player');
         } else if (instantMP) {
+            isMultiplayer = true;
             UI.showScreen('lobby');
             Multiplayer.createRoom(username || 'Player');
         } else {
             UI.showScreen('menu');
         }
 
-        // Fix 12: Track game start
         trackEvent('game_loaded', { mode: 'menu' });
     }
 
@@ -187,20 +179,24 @@
     // UI Event Handlers
     // ===================================================================
     function setupUIListeners() {
+        // Single player — no wager
         UI.onButton('single', () => {
             isMultiplayer = false;
+            currentWager = 0;
+            currentPot = 0;
             startGame(false);
             trackEvent('game_start', { mode: 'single' });
         });
 
+        // Create room → go to wager screen
         UI.onButton('create', () => {
             isMultiplayer = true;
-            UI.showScreen('lobby');
             const username = CG.getUsername() || 'Player';
             Multiplayer.createRoom(username);
-            trackEvent('room_created');
+            showWagerScreen(true);
         });
 
+        // Join room → go to lobby first, then wager screen when room data arrives
         UI.onButton('join', () => UI.toggleJoinContainer(true));
 
         UI.onButton('joinConfirm', () => {
@@ -246,6 +242,9 @@
             CG.leftRoom();
             isMultiplayer = false;
             mySymbol = null;
+            currentWager = 0;
+            currentPot = 0;
+            UI.clearLobbyWager();
             UI.showScreen('menu');
         });
 
@@ -258,16 +257,24 @@
             CG.gameplayStop();
             isMultiplayer = false;
             mySymbol = null;
+            currentWager = 0;
+            currentPot = 0;
             TicTacToe.reset();
             UI.clearBoard();
             UI.hideDisconnectModal();
             UI.showScreen('menu');
         });
 
+        // Rematch → go to wager screen (not straight to game)
         UI.onButton('rematch', () => {
             if (isMultiplayer) {
-                Multiplayer.requestRematch();
-                trackEvent('rematch_requested');
+                // For multiplayer, go back to wager screen
+                TicTacToe.reset();
+                UI.clearBoard();
+                const username = CG.getUsername() || 'Player';
+                Multiplayer.createRoom(username);
+                showWagerScreen(true);
+                trackEvent('rematch_new_wager');
             } else {
                 TicTacToe.reset();
                 UI.clearBoard();
@@ -285,42 +292,107 @@
             CG.gameplayStop();
             isMultiplayer = false;
             mySymbol = null;
+            currentWager = 0;
+            currentPot = 0;
             TicTacToe.reset();
             UI.clearBoard();
             UI.hideDisconnectModal();
             UI.showScreen('menu');
         });
 
-        // Fix 9: Sound toggle
-        document.getElementById("btn-sound").addEventListener("click", () => {
+        // Wager screen buttons
+        UI.onButton('wagerConfirm', () => {
+            const amount = UI.getWagerAmount();
+            if (!Wager.isValidWager(amount)) {
+                UI.showWagerWarning(`Minimum wager is ${Wager.getMinWager()} coins`);
+                return;
+            }
+            if (amount > Wager.getBalance()) {
+                UI.showWagerWarning('Not enough coins!');
+                return;
+            }
+
+            currentWager = amount;
+            currentPot = amount * 2;
+
+            if (mySymbol === 'X') {
+                // Host sets wager
+                Multiplayer.setWager(amount);
+                UI.showScreen('lobby');
+                UI.setLobbyWager(amount, amount * 2);
+                UI.setGameWager(amount * 2);
+            } else {
+                // Guest confirms wager
+                const deducted = Wager.deductWager(amount);
+                if (!deducted) {
+                    UI.showWagerWarning('Not enough coins!');
+                    return;
+                }
+                Multiplayer.confirmWager();
+                UI.updateCoinDisplay(Wager.getBalance());
+            }
+        });
+
+        UI.onButton('wagerCoins', async () => {
+            const result = await Wager.earnCoinsFromAd();
+            if (result.success) {
+                UI.updateCoinDisplay(Wager.getBalance());
+                UI.pulseCoinHud();
+                Sound.playCoin();
+                // Update slider max
+                const maxWager = Wager.getMaxWager();
+                document.getElementById('wager-slider').max = maxWager;
+                document.getElementById('wager-host-balance').textContent = `💰 ${Wager.formatCoins(Wager.getBalance())}`;
+                trackEvent('coins_earned', { amount: result.earned });
+            } else if (result.reason === 'cooldown') {
+                UI.showAdCooldown(result.remaining);
+            } else {
+                UI.showWagerWarning('Ad not available. Try again later.');
+            }
+        });
+
+        UI.onButton('wagerBack', () => {
+            Multiplayer.leaveRoom();
+            isMultiplayer = false;
+            mySymbol = null;
+            currentWager = 0;
+            currentPot = 0;
+            UI.showScreen('menu');
+        });
+
+        // Sound toggle
+        document.getElementById('btn-sound').addEventListener('click', () => {
             const muted = Sound.toggleMute();
-            document.getElementById("btn-sound").textContent = muted ? "🔇" : "🔊";
+            document.getElementById('btn-sound').textContent = muted ? '🔇' : '🔊';
         });
 
-        // Fix 11: Disconnect modal buttons
-        document.getElementById("btn-modal-rematch").addEventListener("click", () => {
+        // Disconnect modal
+        document.getElementById('btn-modal-rematch').addEventListener('click', () => {
             UI.hideDisconnectModal();
             cleanupJoinListener();
             if (isMultiplayer) { Multiplayer.leaveRoom(); CG.leftRoom(); }
             isMultiplayer = false;
             mySymbol = null;
+            currentWager = 0;
+            currentPot = 0;
             TicTacToe.reset();
             UI.clearBoard();
-            UI.showScreen("lobby");
-            const username = CG.getUsername() || "Player";
+            const username = CG.getUsername() || 'Player';
             Multiplayer.createRoom(username);
-            trackEvent("rematch_after_disconnect");
+            showWagerScreen(true);
         });
 
-        document.getElementById("btn-modal-menu").addEventListener("click", () => {
+        document.getElementById('btn-modal-menu').addEventListener('click', () => {
             UI.hideDisconnectModal();
             cleanupJoinListener();
             if (isMultiplayer) { Multiplayer.leaveRoom(); CG.leftRoom(); }
             isMultiplayer = false;
             mySymbol = null;
+            currentWager = 0;
+            currentPot = 0;
             TicTacToe.reset();
             UI.clearBoard();
-            UI.showScreen("menu");
+            UI.showScreen('menu');
         });
 
         UI.onCellClick((index) => {
@@ -331,7 +403,26 @@
     }
 
     // ===================================================================
-    // Fix 3: Cleanup join room listener
+    // Wager Screen
+    // ===================================================================
+    function showWagerScreen(isHost) {
+        const username = CG.getUsername() || 'Player';
+        const balance = Wager.getBalance();
+        const maxWager = Wager.getMaxWager(balance);
+
+        UI.setWagerScreen(
+            username, balance,
+            isHost ? 'Waiting...' : 'Host',
+            isHost ? null : balance,
+            maxWager
+        );
+        UI.showWagerWarning('');
+        UI.showAdCooldown(Wager.getAdCooldownRemaining());
+        UI.showScreen('wager');
+    }
+
+    // ===================================================================
+    // Cleanup
     // ===================================================================
     function cleanupJoinListener() {
         if (joinRoomCallback) {
@@ -352,15 +443,14 @@
             console.log('MP: Room created:', data.roomId);
             UI.setRoomCode(data.roomId);
             mySymbol = 'X';
-            // Fix 10: Use CG username for display
             const username = CG.getUsername() || 'Player';
             UI.setPlayerNames(username, 'Waiting...');
-
             CG.updateRoom({
                 roomId: data.roomId,
                 isJoinable: true,
                 inviteParams: { roomId: data.roomId }
             });
+            // Don't go to wager screen here — it's already shown in the create button handler
         });
 
         Multiplayer.on('roomJoined', (data) => {
@@ -369,11 +459,8 @@
             const username = CG.getUsername() || 'Player';
             const hostName = data.hostName || 'Host';
             UI.setPlayerNames(hostName, data.symbol === 'O' ? username : 'Waiting...');
-
-            if (data.symbol === 'O') {
-                CG.updateRoom({ roomId: data.roomId, isJoinable: false });
-                startGame(true);
-            }
+            CG.updateRoom({ roomId: data.roomId, isJoinable: false });
+            // Guest waits for wager_set message to show wager screen
         });
 
         Multiplayer.on('joinFailed', (data) => {
@@ -383,18 +470,64 @@
         });
 
         Multiplayer.on('opponentJoined', (data) => {
-            // Fix 10: Show CG username
             const username = CG.getUsername() || 'Player';
             UI.setPlayerNames(username, data.name);
+            // If host and we have a wager set, show lobby with wager info
+            if (mySymbol === 'X' && currentWager > 0) {
+                UI.setLobbyWager(currentWager, currentPot);
+            }
+        });
+
+        // Wager events
+        Multiplayer.on('wager_update', (data) => {
+            currentWager = data.amount;
+            currentPot = data.pot;
+            if (mySymbol === 'O') {
+                // Guest sees wager set by host
+                showWagerScreen(false);
+                UI.setWagerScreen(
+                    CG.getUsername() || 'Player', Wager.getBalance(),
+                    'Host', data.hostBalance || 0,
+                    Math.min(Wager.getBalance(), data.amount)
+                );
+                // Pre-set slider to host's wager
+                const slider = document.getElementById('wager-slider');
+                slider.value = data.amount;
+                slider.max = Math.min(Wager.getBalance(), data.amount);
+                UI.updateWagerDisplay();
+            }
+            UI.setGameWager(data.pot);
+        });
+
+        Multiplayer.on('wager_locked', (data) => {
+            currentWager = data.wager;
+            currentPot = data.pot;
+            // Deduct host's wager too (guest already deducted on confirm)
+            if (mySymbol === 'X') {
+                Wager.deductWager(data.wager);
+                UI.updateCoinDisplay(Wager.getBalance());
+            }
+            UI.setLobbyWager(data.wager, data.pot);
+            UI.setGameWager(data.pot);
+            // Start the game!
             startGame(true);
         });
 
-        // Fix 11: Opponent disconnect modal
         Multiplayer.on('opponentLeft', () => {
             UI.setConnectionStatus('disconnected');
             if (UI.getCurrentScreen() === 'game') {
                 CG.gameplayStop();
+                // Opponent left mid-game — refund wager
+                if (currentWager > 0) {
+                    Wager.refundWager(currentWager);
+                    UI.updateCoinDisplay(Wager.getBalance());
+                }
                 UI.showDisconnectModal();
+            } else if (UI.getCurrentScreen() === 'lobby' || UI.getCurrentScreen() === 'wager') {
+                // Opponent left during wager — go back to menu
+                currentWager = 0;
+                currentPot = 0;
+                UI.showScreen('menu');
             }
             trackEvent('opponent_disconnected');
         });
@@ -412,26 +545,16 @@
             Multiplayer.acceptRematch();
         });
 
-        // Fix 8: Rematch accepted — keep room alive, update CG room
         Multiplayer.on('rematchAccepted', () => {
             TicTacToe.reset();
             UI.clearBoard();
-            // Fix 8: Update CG room so friends can still join during rematch
-            if (isMultiplayer && mySymbol === 'X') {
-                const roomId = Multiplayer.getRoom();
-                if (roomId) {
-                    CG.updateRoom({
-                        roomId,
-                        isJoinable: true,
-                        inviteParams: { roomId }
-                    });
-                }
-            }
-            startGame(isMultiplayer);
-            trackEvent('rematch_accepted', { mode: isMultiplayer ? 'multi' : 'single' });
+            // Rematch goes to wager screen, not straight to game
+            const username = CG.getUsername() || 'Player';
+            Multiplayer.createRoom(username);
+            showWagerScreen(true);
+            trackEvent('rematch_accepted', { mode: 'wager' });
         });
 
-        // Fix 3: Store callback for cleanup
         joinRoomCallback = (inviteParams) => {
             const roomId = inviteParams.roomId || inviteParams.room;
             if (roomId && !Multiplayer.getRoom()) {
@@ -451,7 +574,6 @@
         TicTacToe.reset();
         UI.clearBoard();
 
-        // Fix 10: Use CG username
         const username = CG.getUsername() || 'Player';
         if (multiplayer) {
             const xName = mySymbol === 'X' ? username : 'Opponent';
@@ -503,18 +625,41 @@
     function handleGameEnd(result) {
         CG.gameplayStop();
 
-        // Fix 9: Play lose sound for the loser
         if (isMultiplayer && result.winner && result.winner !== mySymbol) {
             Sound.playLose();
         }
+
+        // Handle wager win/loss
+        let coinChange = 0;
+        if (isMultiplayer && currentWager > 0) {
+            if (result.winner) {
+                const iWon = result.winner === mySymbol;
+                if (iWon) {
+                    coinChange = currentPot;
+                    Wager.addWinnings(currentPot);
+                    Sound.playCoin();
+                    UI.showCoinWinAnimation(currentPot);
+                } else {
+                    coinChange = -currentWager;
+                    Wager.recordLoss(currentWager);
+                }
+            } else {
+                // Draw — refund both
+                coinChange = 0;
+                Wager.refundWager(currentWager);
+            }
+            UI.updateCoinDisplay(Wager.getBalance());
+            UI.pulseCoinHud();
+        }
+
+        updateGameUI();
 
         setTimeout(async () => {
             await CG.requestAd('midgame');
 
             const winner = result.winner || null;
-            UI.showGameOverForResult(winner, isMultiplayer, mySymbol);
+            UI.showGameOverForResult(winner, isMultiplayer, mySymbol, coinChange);
 
-            // Fix 8: Update room to joinable for rematch
             if (isMultiplayer) {
                 const roomId = Multiplayer.getRoom();
                 if (roomId) {

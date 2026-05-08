@@ -138,47 +138,27 @@ html, body {
     transform: scale(0.96);
 }
 
-.btn-primary {
-    background: var(--primary);
-}
-.btn-primary:hover { background: var(--primary-hover); }
-.btn-primary:active { background: var(--primary-hover); }
+.btn-primary { background: var(--primary); }
+.btn-primary:hover, .btn-primary:active { background: var(--primary-hover); }
 
-.btn-accent {
-    background: var(--accent);
-}
-.btn-accent:hover { background: var(--accent-hover); }
-.btn-accent:active { background: var(--accent-hover); }
+.btn-accent { background: var(--accent); }
+.btn-accent:hover, .btn-accent:active { background: var(--accent-hover); }
 
-.btn-secondary {
-    background: var(--secondary);
-    color: #1a1a2e;
-}
-.btn-secondary:hover { background: var(--secondary-hover); }
-.btn-secondary:active { background: var(--secondary-hover); }
+.btn-secondary { background: var(--secondary); color: #1a1a2e; }
+.btn-secondary:hover, .btn-secondary:active { background: var(--secondary-hover); }
 
 .btn-ghost {
     background: transparent;
     color: var(--text-dim);
     border: 1px solid var(--bg-hover);
 }
-.btn-ghost:hover {
+.btn-ghost:hover, .btn-ghost:active {
     background: var(--bg-hover);
     color: var(--text);
 }
-.btn-ghost:active {
-    background: var(--bg-hover);
-}
 
-.btn-small {
-    padding: 8px 16px;
-    font-size: 0.85rem;
-}
-
-.btn-large {
-    padding: 18px 36px;
-    font-size: 1.15rem;
-}
+.btn-small { padding: 8px 16px; font-size: 0.85rem; }
+.btn-large { padding: 18px 36px; font-size: 1.15rem; }
 
 /* ===== Join Container ===== */
 .join-container {
@@ -203,9 +183,7 @@ html, body {
     transition: border-color var(--transition);
 }
 
-.join-container input:focus {
-    border-color: var(--primary);
-}
+.join-container input:focus { border-color: var(--primary); }
 
 /* ===== Lobby Screen ===== */
 .lobby-content {
@@ -219,7 +197,6 @@ html, body {
     margin-bottom: 28px;
 }
 
-/* Animated dots for "Waiting..." */
 .dots span {
     animation: dotPulse 1.4s ease-in-out infinite;
     opacity: 0;
@@ -342,6 +319,26 @@ html, body {
     width: 100px;
     text-align: center;
     flex-shrink: 0;
+    transition: all 0.3s ease;
+    opacity: 0.5;
+}
+
+.player-tag.active {
+    opacity: 1;
+    transform: scale(1.05);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
+}
+
+.player-tag.x-active {
+    background: rgba(255, 107, 107, 0.25) !important;
+    color: var(--x-color) !important;
+    border: 1px solid rgba(255, 107, 107, 0.4);
+}
+
+.player-tag.o-active {
+    background: rgba(78, 205, 196, 0.25) !important;
+    color: var(--o-color) !important;
+    border: 1px solid rgba(78, 205, 196, 0.4);
 }
 
 .turn-indicator {
@@ -351,6 +348,7 @@ html, body {
     text-align: center;
     width: 100px;
     flex-shrink: 0;
+    transition: all 0.3s ease;
 }
 
 .turn-indicator.x-turn { color: var(--x-color); }
@@ -375,6 +373,11 @@ html, body {
     background: var(--bg-card);
     padding: 8px;
     border-radius: var(--radius);
+    transition: opacity 0.3s ease;
+}
+
+.board.dimmed {
+    opacity: 0.6;
 }
 
 .cell {
@@ -387,16 +390,27 @@ html, body {
     font-weight: 700;
     line-height: 1;
     cursor: pointer;
-    transition: background 0.15s ease, transform 0.1s ease;
+    transition: background 0.15s ease, transform 0.1s ease, opacity 0.3s ease;
     overflow: hidden;
-    /* Force perfect square regardless of content */
     aspect-ratio: 1;
     width: 100%;
     min-height: 0;
+    position: relative;
 }
 
-.cell:hover:not(.taken) {
+/* Ghost hover preview */
+.cell:not(.taken):hover {
     background: var(--bg-hover);
+}
+
+.cell:not(.taken):hover::after {
+    content: attr(data-ghost);
+    position: absolute;
+    font-size: 2.5rem;
+    font-weight: 700;
+    opacity: 0.2;
+    line-height: 1;
+    pointer-events: none;
 }
 
 .cell:active:not(.taken) {
@@ -411,22 +425,35 @@ html, body {
 .cell.x {
     color: var(--x-color);
     text-shadow: 0 0 10px rgba(255, 107, 107, 0.4);
+    animation: symbolPop 0.25s ease;
 }
 
 .cell.o {
     color: var(--o-color);
     text-shadow: 0 0 10px rgba(78, 205, 196, 0.4);
+    animation: symbolPop 0.25s ease;
+}
+
+@keyframes symbolPop {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.15); }
+    100% { transform: scale(1); opacity: 1; }
 }
 
 .cell.win {
     background: rgba(255, 215, 0, 0.15);
-    animation: pulse 0.6s ease infinite alternate;
+    animation: winPulse 0.6s ease infinite alternate;
 }
 
-@keyframes pulse {
+@keyframes winPulse {
     from { box-shadow: 0 0 5px rgba(255, 215, 0, 0.3); }
     to { box-shadow: 0 0 20px rgba(255, 215, 0, 0.6); }
 }
+
+.cell.loser {
+    opacity: 0.3;
+}
+
 
 /* ===== Game Actions ===== */
 .game-actions {
@@ -617,14 +644,8 @@ html, body {
     padding: 0;
 }
 
-.btn-sound:hover {
-    background: var(--bg-hover);
-    color: var(--text);
-}
-
-.btn-sound:active {
-    transform: scale(0.9);
-}
+.btn-sound:hover { background: var(--bg-hover); color: var(--text); }
+.btn-sound:active { transform: scale(0.9); }
 
 /* ===== Loading Progress Bar ===== */
 .loading-progress-container {
@@ -650,15 +671,9 @@ html, body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-.screen.active {
-    /* No animation to prevent layout jitter during gameplay */
-}
-
 /* ===== Responsive ===== */
 @media (max-width: 480px) {
-    .menu-content h1, .loader-content h1 {
-        font-size: 2rem;
-    }
+    .menu-content h1, .loader-content h1 { font-size: 2rem; }
 
     .board {
         max-width: 320px;
@@ -666,68 +681,352 @@ html, body {
         padding: 6px;
     }
 
-    .cell {
-        font-size: clamp(1.6rem, 8vw, 2.2rem);
-        border-radius: 6px;
-    }
+    .cell { font-size: clamp(1.6rem, 8vw, 2.2rem); border-radius: 6px; }
+    .cell:not(.taken):hover::after { font-size: clamp(1.6rem, 8vw, 2.2rem); }
 
-    .btn {
-        padding: 12px 24px;
-        font-size: 0.95rem;
-    }
+    .btn { padding: 12px 24px; font-size: 0.95rem; }
+    .btn-large { padding: 16px 32px; font-size: 1.1rem; }
 
-    .btn-large {
-        padding: 16px 32px;
-        font-size: 1.1rem;
-    }
+    .lobby-info { gap: 12px; }
 
-    .lobby-info {
-        gap: 12px;
-    }
+    .player-icon { width: 52px; height: 52px; font-size: 1.3rem; }
+    .player-name { font-size: 0.8rem; max-width: 70px; }
 
-    .player-icon {
-        width: 52px;
-        height: 52px;
-        font-size: 1.3rem;
-    }
+    .room-code-display .code { font-size: 1.5rem; letter-spacing: 4px; padding: 6px 14px; }
 
-    .player-name {
-        font-size: 0.8rem;
-        max-width: 70px;
-    }
-
-    .room-code-display .code {
-        font-size: 1.5rem;
-        letter-spacing: 4px;
-        padding: 6px 14px;
-    }
-
-    .game-header {
-        margin-bottom: 12px;
-    }
-
-    .player-tag {
-        font-size: 0.75rem;
-        padding: 3px 8px;
-        width: 80px;
-    }
-
-    .turn-indicator {
-        font-size: 0.8rem;
-        width: 80px;
-    }
+    .game-header { margin-bottom: 12px; }
+    .player-tag { font-size: 0.75rem; padding: 3px 8px; width: 80px; }
+    .turn-indicator { font-size: 0.8rem; width: 80px; }
 }
 
 @media (max-width: 360px) {
-    .board {
-        max-width: 280px;
-    }
+    .board { max-width: 280px; }
+    .cell { font-size: 1.8rem; }
+    .cell:not(.taken):hover::after { font-size: 1.8rem; }
+    .menu-content h1, .loader-content h1 { font-size: 1.7rem; }
+}
 
-    .cell {
-        font-size: 1.8rem;
-    }
+/* ===== Coin HUD ===== */
+.coin-hud {
+    position: fixed;
+    top: 10px;
+    left: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--bg-card);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--secondary);
+    z-index: 100;
+    border: 1px solid rgba(78, 205, 196, 0.3);
+    box-shadow: 0 0 10px rgba(78, 205, 196, 0.15);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
 
-    .menu-content h1, .loader-content h1 {
-        font-size: 1.7rem;
-    }
+.coin-hud.hidden {
+    display: none;
+}
+
+.coin-hud.pulse {
+    animation: coinPulse 0.5s ease;
+}
+
+@keyframes coinPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); box-shadow: 0 0 20px rgba(78, 205, 196, 0.4); }
+    100% { transform: scale(1); }
+}
+
+.coin-icon {
+    font-size: 1rem;
+}
+
+.coin-balance {
+    font-variant-numeric: tabular-nums;
+}
+
+/* ===== Coin Win Animation Overlay ===== */
+.coin-win-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 200;
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.coin-win-overlay.hidden {
+    display: none;
+}
+
+.coin-win-flyer {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--secondary);
+    text-shadow: 0 0 20px rgba(78, 205, 196, 0.6);
+    animation: coinFly 1.5s ease forwards;
+}
+
+@keyframes coinFly {
+    0% { transform: translateY(0) scale(0.5); opacity: 0; }
+    30% { transform: translateY(-20px) scale(1.2); opacity: 1; }
+    100% { transform: translateY(-80px) scale(1); opacity: 0; }
+}
+
+/* ===== Wager Screen ===== */
+.wager-content {
+    text-align: center;
+    max-width: 400px;
+    width: 100%;
+}
+
+.wager-content h2 {
+    font-size: 1.8rem;
+    margin-bottom: 24px;
+}
+
+.wager-players {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.wager-player {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.wager-player-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    font-weight: 700;
+    background: var(--bg-card);
+}
+
+.wager-player-name {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wager-player-coins {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--secondary);
+}
+
+.wager-vs {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-dim);
+}
+
+/* ===== Wager Slider ===== */
+.wager-slider-container {
+    margin-bottom: 20px;
+    padding: 0 10px;
+}
+
+.wager-label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+}
+
+.wager-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--bg-hover);
+    outline: none;
+    cursor: pointer;
+}
+
+.wager-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: 3px solid var(--bg-card);
+    box-shadow: 0 0 10px rgba(108, 99, 255, 0.4);
+    transition: transform 0.15s ease;
+}
+
+.wager-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+}
+
+.wager-slider::-webkit-slider-thumb:active {
+    transform: scale(1.05);
+}
+
+.wager-slider::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: 3px solid var(--bg-card);
+    box-shadow: 0 0 10px rgba(108, 99, 255, 0.4);
+}
+
+.wager-slider-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+}
+
+.wager-amount-display {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--primary) !important;
+}
+
+/* ===== Wager Pot ===== */
+.wager-pot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 12px 20px;
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.wager-pot-label {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+}
+
+.wager-pot-amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--win-glow);
+}
+
+.wager-pot-icon {
+    font-size: 1.2rem;
+}
+
+/* ===== Wager Warning ===== */
+.wager-warning {
+    color: var(--accent);
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background: rgba(255, 107, 107, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 107, 107, 0.2);
+}
+
+/* ===== Wager Buttons ===== */
+.wager-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.wager-ad-cooldown {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 8px;
+}
+
+/* ===== Lobby Wager Info ===== */
+.lobby-wager-info {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 20px;
+    padding: 8px 16px;
+    background: var(--bg-card);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+}
+
+.lobby-wager-info span span {
+    color: var(--win-glow);
+    font-weight: 600;
+}
+
+/* ===== Game Wager Info ===== */
+.game-wager-info {
+    text-align: center;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    font-weight: 600;
+}
+
+.game-wager-info span {
+    color: var(--win-glow);
+}
+
+/* ===== Game Over Coins ===== */
+.result-coins {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+.result-coins.win {
+    color: var(--secondary);
+    background: rgba(78, 205, 196, 0.1);
+    border: 1px solid rgba(78, 205, 196, 0.3);
+}
+
+.result-coins.lose {
+    color: var(--accent);
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+.result-coins.draw {
+    color: var(--text-dim);
+    background: var(--bg-card);
+    border: 1px solid var(--bg-hover);
+}
+
+/* ===== Responsive Wager ===== */
+@media (max-width: 480px) {
+    .wager-players { gap: 10px; }
+    .wager-player-icon { width: 48px; height: 48px; font-size: 1.2rem; }
+    .wager-player-name { font-size: 0.75rem; max-width: 65px; }
+    .wager-player-coins { font-size: 0.8rem; }
+    .wager-pot-amount { font-size: 1.3rem; }
+    .wager-slider::-webkit-slider-thumb { width: 24px; height: 24px; }
+    .wager-slider::-moz-range-thumb { width: 24px; height: 24px; }
 }
