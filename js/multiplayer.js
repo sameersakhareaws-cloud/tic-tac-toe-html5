@@ -6,6 +6,9 @@
  *   2. Local (dev/fallback) — same-origin cross-tab via localStorage events
  *
  * connect() ALWAYS resolves — falls back to local mode if WS fails.
+ *
+ * SHOULD-DO FIXES:
+ * 8. Rematch keeps room alive, updates room data for invite continuity
  */
 const Multiplayer = (() => {
     let ws = null;
@@ -16,11 +19,9 @@ const Multiplayer = (() => {
     let useWS = false;
     const listeners = {};
 
-    // Connect to the same host that served this page, on port 3000
-    // For production, change this to your deployed WS server URL
-    const WS_URL = 'ws://' + window.location.hostname + ':3000';
+    const WS_URL = 'ws://' + window.location.hostname + ':3002';
     const WS_TIMEOUT = 3000;
-    const STORAGE_PREFIX = 'ttmp_'; // tic-tacoe multiplayer
+    const STORAGE_PREFIX = 'ttmp_';
 
     // ===== Event System =====
 
@@ -64,16 +65,12 @@ const Multiplayer = (() => {
                 if (localStarted) return;
                 localStarted = true;
                 console.log('MP: Starting local mode:', reason);
-
                 useWS = false;
-                // Listen for localStorage events from other tabs
                 window.addEventListener('storage', handleStorageEvent);
-                // Announce our presence
                 localStorage.setItem(STORAGE_PREFIX + 'mode', 'local');
                 done('local');
             }
 
-            // Try WebSocket
             try {
                 ws = new WebSocket(WS_URL);
             } catch (e) {
@@ -98,9 +95,8 @@ const Multiplayer = (() => {
             };
 
             ws.onmessage = (event) => {
-                try {
-                    handleWSMessage(JSON.parse(event.data));
-                } catch (e) { console.error('MP: parse error:', e); }
+                try { handleWSMessage(JSON.parse(event.data)); }
+                catch (e) { console.error('MP: parse error:', e); }
             };
 
             ws.onclose = () => {
@@ -123,29 +119,12 @@ const Multiplayer = (() => {
         });
     }
 
-    // ===== Local Mode (localStorage events) =====
+    // ===== Local Mode =====
 
-    /**
-     * localStorage 'storage' events fire in OTHER tabs when a tab writes to localStorage.
-     * We use this to relay messages between tabs on the same origin.
-     *
-     * Message format stored in localStorage:
-     *   key: ttmp_<roomId>_<timestamp>
-     *   value: JSON of { type, roomId, ...data, sender: myName }
-     *
-     * We also use a simple "rooms" registry:
-     *   ttmp_rooms = JSON of { roomId: { hostName, createdAt } }
-     */
     function handleStorageEvent(event) {
         if (!event.key || !event.key.startsWith(STORAGE_PREFIX)) return;
-        if (!event.newValue) return; // ignore deletions
-
-        try {
-            const msg = JSON.parse(event.newValue);
-            handleLocalMessage(msg);
-        } catch (e) {
-            // ignore non-JSON values
-        }
+        if (!event.newValue) return;
+        try { handleLocalMessage(JSON.parse(event.newValue)); } catch (e) {}
     }
 
     function localSend(msg) {
@@ -154,65 +133,41 @@ const Multiplayer = (() => {
         msg._ts = Date.now();
         const key = STORAGE_PREFIX + myRoom + '_' + msg._ts;
         localStorage.setItem(key, JSON.stringify(msg));
-        // Clean up after a delay to avoid localStorage bloat
         setTimeout(() => localStorage.removeItem(key), 5000);
     }
 
     function handleLocalMessage(msg) {
         if (!msg || !msg.type) return;
-
-        // Filter by room
         const isForMyRoom = msg.roomId && msg.roomId === myRoom;
         const isGlobal = !msg.roomId;
-
         if (!isGlobal && !isForMyRoom) return;
-
-        console.log('MP local msg:', msg.type, msg.roomId || '(global)');
 
         switch (msg.type) {
             case 'room_exists':
-                // Track room in registry
                 registerRoom(msg.roomId, msg.hostName);
                 break;
-
             case 'join_request':
                 if (mySymbol === 'X' && myRoom === msg.roomId) {
-                    console.log('MP: Guest joining:', msg.guestName);
-                    localSend({
-                        type: 'join_accept',
-                        roomId: myRoom,
-                        guestName: msg.guestName,
-                        hostName: myName
-                    });
+                    localSend({ type: 'join_accept', roomId: myRoom, guestName: msg.guestName, hostName: myName });
                     emit('opponentJoined', { name: msg.guestName || 'Guest' });
                 }
                 break;
-
             case 'join_accept':
                 if (mySymbol === 'O' && myRoom === msg.roomId) {
-                    console.log('MP: Join accepted by host:', msg.hostName);
-                    emit('roomJoined', {
-                        roomId: myRoom,
-                        symbol: 'O',
-                        hostName: msg.hostName
-                    });
+                    emit('roomJoined', { roomId: myRoom, symbol: 'O', hostName: msg.hostName });
                 }
                 break;
-
             case 'move':
                 if (isForMyRoom && msg.player !== mySymbol) {
                     emit('move', { cell: msg.cell, player: msg.player });
                 }
                 break;
-
             case 'rematch_req':
                 if (isForMyRoom) emit('rematchRequested', {});
                 break;
-
             case 'rematch_ack':
                 if (isForMyRoom) emit('rematchAccepted', {});
                 break;
-
             case 'peer_left':
                 if (isForMyRoom) emit('opponentLeft', {});
                 break;
@@ -221,9 +176,7 @@ const Multiplayer = (() => {
 
     function registerRoom(roomId, hostName) {
         let rooms = {};
-        try {
-            rooms = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'rooms') || '{}');
-        } catch (e) {}
+        try { rooms = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'rooms') || '{}'); } catch (e) {}
         rooms[roomId] = { hostName, createdAt: Date.now() };
         localStorage.setItem(STORAGE_PREFIX + 'rooms', JSON.stringify(rooms));
     }
@@ -268,8 +221,6 @@ const Multiplayer = (() => {
         }
     }
 
-    // ===== Send =====
-
     function send(data) {
         if (useWS && ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify(data));
@@ -292,7 +243,6 @@ const Multiplayer = (() => {
         myRoom = generateRoomCode();
         mySymbol = 'X';
         console.log('MP: Creating room', myRoom, 'mode:', useWS ? 'ws' : 'local');
-
         if (useWS) {
             send({ type: 'create_room', name: myName });
         } else {
@@ -307,7 +257,6 @@ const Multiplayer = (() => {
         myRoom = roomCode.toUpperCase();
         mySymbol = 'O';
         console.log('MP: Joining room', myRoom, 'mode:', useWS ? 'ws' : 'local');
-
         if (useWS) {
             send({ type: 'join_room', roomId: myRoom, name: myName });
         } else {
@@ -324,6 +273,7 @@ const Multiplayer = (() => {
         }
     }
 
+    // Fix 8: Rematch keeps room alive — don't clear myRoom/mySymbol
     function requestRematch() {
         if (useWS) {
             send({ type: 'rematch_request', roomId: myRoom });
@@ -337,12 +287,11 @@ const Multiplayer = (() => {
             send({ type: 'rematch_accept', roomId: myRoom });
         } else {
             localSend({ type: 'rematch_ack', roomId: myRoom });
-            // In local mode, storage event won't fire for the sender,
-            // so emit rematchAccepted locally
             emit('rematchAccepted', {});
         }
     }
 
+    // Fix 8: leaveRoom only clears state when explicitly leaving (not on rematch)
     function leaveRoom() {
         if (myRoom) {
             if (useWS) {
@@ -359,11 +308,12 @@ const Multiplayer = (() => {
     function isConnected() { return connected; }
     function getRoom() { return myRoom; }
     function getSymbol() { return mySymbol; }
+    function getName() { return myName; }
 
     return {
         connect, on, off,
         createRoom, joinRoom, sendMove,
         requestRematch, acceptRematch, leaveRoom,
-        isConnected, getRoom, getSymbol
+        isConnected, getRoom, getSymbol, getName
     };
 })();

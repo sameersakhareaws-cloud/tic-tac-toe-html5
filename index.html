@@ -10,6 +10,9 @@
     <!-- Loading Screen -->
     <div id="loading-screen" class="screen active">
         <div class="loader-content">
+            <div id="loading-progress-container" class="loading-progress-container">
+                <div id="loading-progress-bar" class="loading-progress-bar"></div>
+            </div>
             <h1>⚡ Tic-Tac-Toe</h1>
             <div class="spinner"></div>
             <p id="loading-text">Loading...</p>
@@ -22,9 +25,9 @@
             <h1>⚡ Tic-Tac-Toe</h1>
             <div id="user-info" class="user-info"></div>
             <div class="menu-buttons">
-                <button id="btn-single" class="btn btn-primary">🎮 Single Player</button>
-                <button id="btn-create" class="btn btn-accent">➕ Create Room</button>
-                <button id="btn-join" class="btn btn-secondary">🔗 Join Room</button>
+                <button id="btn-single" class="btn btn-primary btn-large">🎮 Play Now</button>
+                <button id="btn-create" class="btn btn-secondary">➕ Create Room</button>
+                <button id="btn-join" class="btn btn-ghost">🔗 Join Room</button>
             </div>
             <div id="join-container" class="join-container hidden">
                 <input type="text" id="room-code-input" placeholder="Enter room code" maxlength="6" autocomplete="off">
@@ -105,6 +108,32 @@
         <span class="conn-dot"></span>
         <span id="conn-text">Connecting...</span>
     </div>
+
+    <!-- Disconnect Modal (Fix 11) -->
+    <div id="disconnect-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>⚠️ Opponent Disconnected</h2>
+            <p>Your opponent has left the game.</p>
+            <div class="modal-buttons">
+                <button id="btn-modal-rematch" class="btn btn-accent">🔄 Find New Opponent</button>
+                <button id="btn-modal-menu" class="btn btn-secondary">🏠 Main Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ad Overlay: full-screen blocker during ads (Fix 4) -->
+    <div id="ad-overlay" class="ad-overlay">
+        <div class="ad-overlay-content">
+            <div class="ad-spinner"></div>
+            <p>Loading advertisement...</p>
+        </div>
+    </div>
+
+    <!-- Sound Toggle -->
+    <button id="btn-sound" class="btn-sound" title="Toggle Sound">🔊</button>
+
+    <!-- Sitelock -->
+    <script src="js/sitelock.js"></script>
 
     <!-- CrazyGames SDK -->
     <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>

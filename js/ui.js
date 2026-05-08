@@ -48,12 +48,29 @@ const UI = (() => {
     };
 
     let buttonCallbacks = {};
+    let currentScreenName = 'loading';
 
     function showScreen(name) {
         Object.values(screens).forEach(s => s.classList.remove('active'));
         if (screens[name]) {
             screens[name].classList.add('active');
         }
+        currentScreenName = name;
+    }
+
+    function getCurrentScreen() {
+        return currentScreenName;
+    }
+
+    // ===== Ad Overlay (Fix 4: full UI block during ads) =====
+    function showAdOverlay() {
+        const overlay = document.getElementById('ad-overlay');
+        if (overlay) overlay.classList.add('active');
+    }
+
+    function hideAdOverlay() {
+        const overlay = document.getElementById('ad-overlay');
+        if (overlay) overlay.classList.remove('active');
     }
 
     function setLoadingText(text) {
@@ -94,10 +111,10 @@ const UI = (() => {
         if (isMultiplayer) {
             const isMyTurn = currentPlayer === mySymbol;
             display.turnIndicator.textContent = isMyTurn ? 'Your Turn' : "Opponent's Turn";
-            display.turnIndicator.className = `turnIndicator ${currentPlayer.toLowerCase()}-turn`;
+            display.turnIndicator.className = `turn-indicator ${currentPlayer.toLowerCase()}-turn`;
         } else {
             display.turnIndicator.textContent = `${currentPlayer}'s Turn`;
-            display.turnIndicator.className = `turnIndicator ${currentPlayer.toLowerCase()}-turn`;
+            display.turnIndicator.className = `turn-indicator ${currentPlayer.toLowerCase()}-turn`;
         }
     }
 
@@ -146,7 +163,7 @@ const UI = (() => {
             display.resultText.textContent = "It's a Draw!";
             display.resultSubtext.textContent = "Good game!";
         } else if (isMultiplayer) {
-            const iWon = result.winner === 'X'; // Will be set by game logic
+            const iWon = result.winner === 'X';
             display.resultText.textContent = iWon ? '🎉 You Win!' : '😔 You Lose';
             display.resultSubtext.textContent = iWon ? 'Great job!' : 'Better luck next time!';
         } else {
@@ -204,6 +221,9 @@ const UI = (() => {
 
     return {
         showScreen,
+        getCurrentScreen,
+        showAdOverlay,
+        hideAdOverlay,
         setLoadingText,
         setUserInfo,
         toggleJoinContainer,
@@ -217,6 +237,26 @@ const UI = (() => {
         showGameOver,
         showGameOverForResult,
         onButton,
+        setLoadingProgress,
+        showDisconnectModal,
+        hideDisconnectModal,
         onCellClick
     };
 })();
+
+// ===== Disconnect Modal (Fix 11) =====
+function showDisconnectModal() {
+    const modal = document.getElementById('disconnect-modal');
+    if (modal) modal.classList.add('active');
+}
+
+function hideDisconnectModal() {
+    const modal = document.getElementById('disconnect-modal');
+    if (modal) modal.classList.remove('active');
+}
+
+// ===== Loading Progress (Fix 14) =====
+function setLoadingProgress(percent) {
+    const bar = document.getElementById('loading-progress-bar');
+    if (bar) bar.style.width = Math.min(100, Math.max(0, percent)) + '%';
+}

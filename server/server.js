@@ -8,6 +8,8 @@
  */
 const WebSocket = require('ws');
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
 const PORT = process.env.PORT || 3000;
 
@@ -92,15 +94,52 @@ setInterval(() => {
     }
 }, 60000);
 
-// ===== WebSocket Server =====
+// ===== HTTP + WebSocket Server =====
 const server = http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-        status: 'ok',
-        rooms: rooms.size,
-        players: players.size,
-        uptime: Math.round(process.uptime())
-    }));
+    const url = req.url.split('?')[0];
+
+    // Health check
+    if (url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({
+            status: 'ok',
+            rooms: rooms.size,
+            players: players.size,
+            uptime: Math.round(process.uptime())
+        }));
+    }
+
+    // Static file serving
+    const publicDir = path.join(__dirname, '..');
+    let filePath = path.join(publicDir, url === '/' ? 'index.html' : url);
+    const ext = path.extname(filePath);
+    const mimeTypes = {
+        '.html': 'text/html',
+        '.js': 'application/javascript',
+        '.css': 'text/css',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.svg': 'image/svg+xml',
+        '.ico': 'image/x-icon'
+    };
+
+    fs.readFile(filePath, (err, data) => {
+        if (err) {
+            // Fallback to index.html for unknown routes
+            fs.readFile(path.join(publicDir, 'index.html'), (err2, data2) => {
+                if (err2) {
+                    res.writeHead(404);
+                    res.end('Not found');
+                } else {
+                    res.writeHead(200, { 'Content-Type': 'text/html' });
+                    res.end(data2);
+                }
+            });
+            return;
+        }
+        res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'text/plain' });
+        res.end(data);
+    });
 });
 
 const wss = new WebSocket.Server({ server });
@@ -245,5 +284,6 @@ function handleMessage(playerId, msg) {
 
 // ===== Start =====
 server.listen(PORT, () => {
-    console.log(`Tic-Tac-Toe WS server running on port ${PORT}`);
+    console.log(`Tic-Tac-Toe server running on port ${PORT}`);
+    console.log(`Open http://localhost:${PORT} to play`);
 });
