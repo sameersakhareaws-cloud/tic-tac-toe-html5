@@ -51,6 +51,7 @@ const UI = (() => {
         connText: document.getElementById('conn-text'),
         board: document.getElementById('board'),
         // Wager screen
+        wagerRoomCodeDisplay: document.getElementById('wager-room-code-display'),
         wagerHostName: document.getElementById('wager-host-name'),
         wagerHostBalance: document.getElementById('wager-host-balance'),
         wagerGuestName: document.getElementById('wager-guest-name'),
@@ -161,6 +162,12 @@ const UI = (() => {
 
     function getWagerAmount() {
         return parseInt(display.wagerSlider.value, 10);
+    }
+
+    function setWagerRoomCode(code) {
+        if (display.wagerRoomCodeDisplay) {
+            display.wagerRoomCodeDisplay.textContent = code;
+        }
     }
 
     function showWagerWarning(msg) {
@@ -374,7 +381,7 @@ const UI = (() => {
         setLoadingText, setUserInfo, setLoadingProgress,
         updateCoinDisplay, pulseCoinHud, showCoinWinAnimation,
         toggleJoinContainer,
-        setWagerScreen, updateWagerDisplay, getWagerAmount, showWagerWarning, showAdCooldown,
+        setWagerScreen, setWagerRoomCode, updateWagerDisplay, getWagerAmount, showWagerWarning, showAdCooldown,
         setRoomCode, setPlayerNames, setLobbyWager, clearLobbyWager,
         setGameInfo, setGameWager, setTurnIndicator, renderBoard, clearBoard,
         setConnectionStatus, showGameOverForResult,

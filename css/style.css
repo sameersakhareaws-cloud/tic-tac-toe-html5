@@ -1030,3 +1030,29 @@ html, body {
     .wager-slider::-webkit-slider-thumb { width: 24px; height: 24px; }
     .wager-slider::-moz-range-thumb { width: 24px; height: 24px; }
 }
+
+/* ===== Wager Room Code ===== */
+.wager-room-code {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 10px 16px;
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    border: 1px solid rgba(108, 99, 255, 0.3);
+}
+
+.wager-room-code .code {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: var(--primary);
+    font-family: 'Courier New', monospace;
+}
+
+@media (max-width: 480px) {
+    .wager-room-code .code { font-size: 1.2rem; letter-spacing: 3px; }
+    .wager-room-code { gap: 8px; padding: 8px 12px; }
+}

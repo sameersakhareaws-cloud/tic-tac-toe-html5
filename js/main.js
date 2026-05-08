@@ -333,6 +333,19 @@
             }
         });
 
+        // Wager screen copy room code
+        document.getElementById('btn-wager-copy').addEventListener('click', () => {
+            const code = Multiplayer.getRoom();
+            if (code) {
+                const link = CG.inviteLink({ roomId: code });
+                navigator.clipboard.writeText(link).then(() => {
+                    const btn = document.getElementById('btn-wager-copy');
+                    btn.textContent = '✅ Copied!';
+                    setTimeout(() => btn.textContent = '📋 Copy', 2000);
+                }).catch(() => navigator.clipboard.writeText(code));
+            }
+        });
+
         UI.onButton('wagerCoins', async () => {
             const result = await Wager.earnCoinsFromAd();
             if (result.success) {
@@ -416,6 +429,9 @@
             isHost ? null : balance,
             maxWager
         );
+        // Show room code on wager screen
+        const roomCode = Multiplayer.getRoom();
+        if (roomCode) UI.setWagerRoomCode(roomCode);
         UI.showWagerWarning('');
         UI.showAdCooldown(Wager.getAdCooldownRemaining());
         UI.showScreen('wager');
