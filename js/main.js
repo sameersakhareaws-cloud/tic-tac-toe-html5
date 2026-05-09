@@ -220,20 +220,79 @@
             const code = Multiplayer.getRoom();
             if (code) {
                 const link = CG.inviteLink({ roomId: code });
-                navigator.clipboard.writeText(link).then(() => {
-                    const btn = document.getElementById('btn-copy-code');
-                    btn.textContent = '✅ Copied!';
-                    setTimeout(() => btn.textContent = '📋 Copy', 2000);
-                }).catch(() => navigator.clipboard.writeText(code));
+                copyToClipboard(link, code);
             }
         });
+
+        // Helper: copy text with fallback for non-HTTPS contexts
+        function copyToClipboard(primary, fallback) {
+            const btn = document.getElementById('btn-copy-code');
+            const showCopied = () => {
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => btn.textContent = '📋 Copy', 2000);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(primary).then(showCopied).catch(() => {
+                    navigator.clipboard.writeText(fallback).then(showCopied).catch(() => fallbackCopy(primary, fallback, showCopied));
+                });
+            } else {
+                fallbackCopy(primary, fallback, showCopied);
+            }
+        }
+
+        function fallbackCopy(primary, fallback, onSuccess) {
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = primary;
+                ta.style.position = 'fixed';
+                ta.style.left = '-9999px';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                onSuccess();
+            } catch (e) {
+                // Last resort: try fallback text
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = fallback;
+                    ta.style.position = 'fixed';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    onSuccess();
+                } catch (e2) {
+                    console.log('COPY: Failed to copy to clipboard');
+                }
+            }
+        }
 
         UI.onButton('invite', () => {
             const roomId = Multiplayer.getRoom();
             if (roomId) {
                 const link = CG.inviteLink({ roomId });
-                navigator.clipboard.writeText(link).catch(() => {});
                 const btn = document.getElementById('btn-invite');
+                const tryFallbackCopy = () => {
+                    try {
+                        const ta = document.createElement('textarea');
+                        ta.value = link;
+                        ta.style.position = 'fixed';
+                        ta.style.left = '-9999px';
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(ta);
+                    } catch (e) {
+                        console.log('INVITE: Failed to copy to clipboard');
+                    }
+                };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(link).catch(tryFallbackCopy);
+                } else {
+                    tryFallbackCopy();
+                }
                 btn.textContent = '✅ Link Copied!';
                 setTimeout(() => btn.textContent = '👥 Invite Friends', 2000);
                 trackEvent('invite_sent', { roomId });
@@ -349,11 +408,45 @@
             const code = Multiplayer.getRoom();
             if (code) {
                 const link = CG.inviteLink({ roomId: code });
-                navigator.clipboard.writeText(link).then(() => {
-                    const btn = document.getElementById('btn-wager-copy');
+                const btn = document.getElementById('btn-wager-copy');
+                const showCopied = () => {
                     btn.textContent = '✅ Copied!';
                     setTimeout(() => btn.textContent = '📋 Copy', 2000);
-                }).catch(() => navigator.clipboard.writeText(code));
+                };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(link).then(showCopied).catch(() => {
+                        navigator.clipboard.writeText(code).then(showCopied).catch(() => {
+                            // Fallback: execCommand
+                            try {
+                                const ta = document.createElement('textarea');
+                                ta.value = link;
+                                ta.style.position = 'fixed';
+                                ta.style.left = '-9999px';
+                                document.body.appendChild(ta);
+                                ta.select();
+                                document.execCommand('copy');
+                                document.body.removeChild(ta);
+                                showCopied();
+                            } catch (e) {
+                                console.log('WAGER COPY: Failed to copy');
+                            }
+                        });
+                    });
+                } else {
+                    try {
+                        const ta = document.createElement('textarea');
+                        ta.value = link;
+                        ta.style.position = 'fixed';
+                        ta.style.left = '-9999px';
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(ta);
+                        showCopied();
+                    } catch (e) {
+                        console.log('WAGER COPY: Failed to copy');
+                    }
+                }
             }
         });
 
@@ -493,6 +586,10 @@
             const hostName = data.hostName || 'Host';
             UI.setPlayerNames(hostName, data.symbol === 'O' ? username : 'Waiting...');
             CG.updateRoom({ roomId: data.roomId, isJoinable: false });
+            // Guest: hide pre-join lobby UI (room code, invite) since we're already in the room
+            if (data.symbol === 'O') {
+                UI.setLobbyJoinedState(true);
+            }
         });
 
         Multiplayer.on('joinFailed', (data) => {
@@ -510,6 +607,7 @@
                 showWagerScreen(true);
             } else {
                 console.log('JOIN: Guest waiting for wager');
+                UI.setLobbyJoinedState(true);
                 UI.showLobbyWaiting('Waiting for host to set wager...');
             }
         });

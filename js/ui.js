@@ -230,6 +230,22 @@ const UI = (() => {
         if (el) el.classList.add('hidden');
     }
 
+    // Switch lobby from "pre-join" (waiting for opponent) to "post-join" (opponent connected)
+    function setLobbyJoinedState(isJoined) {
+        const heading = document.querySelector('#lobby-screen h2');
+        const roomCodeDisplay = document.querySelector('#lobby-screen .room-code-display');
+        const inviteBtn = document.getElementById('btn-invite');
+        if (isJoined) {
+            if (heading) heading.classList.add('hidden');
+            if (roomCodeDisplay) roomCodeDisplay.classList.add('hidden');
+            if (inviteBtn) inviteBtn.classList.add('hidden');
+        } else {
+            if (heading) heading.classList.remove('hidden');
+            if (roomCodeDisplay) roomCodeDisplay.classList.remove('hidden');
+            if (inviteBtn) inviteBtn.classList.remove('hidden');
+        }
+    }
+
     // ===== Game =====
     function setGameInfo(xName, oName, isMultiplayer) {
         display.playerXName.textContent = xName;
@@ -409,6 +425,7 @@ const UI = (() => {
         setGameInfo, setGameWager, setTurnIndicator, renderBoard, clearBoard,
         setConnectionStatus, showGameOverForResult,
         onButton, onCellClick,
-        showDisconnectModal, hideDisconnectModal
+        showDisconnectModal, hideDisconnectModal,
+        setLobbyJoinedState, showLobbyWaiting, hideLobbyWaiting
     };
 })();
