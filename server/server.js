@@ -52,17 +52,25 @@ function createRoom(hostId, hostName) {
 function joinRoom(roomId, guestId, guestName) {
     const room = rooms.get(roomId);
     if (!room) return { success: false, reason: 'Room not found' };
+    if (!isRoomJoinable(room)) return { success: false, reason: 'Room not found' };
     if (room.guestId) return { success: false, reason: 'Room is full' };
     if (room.hostId === guestId) return { success: false, reason: 'Cannot join your own room' };
 
     room.guestName = guestName || 'Guest';
     room.guestId = guestId;
+    // If host was in grace period, clear the disconnect marker
+    if (!room.hostId && room.hostDisconnectedAt) {
+        room.hostDisconnectedAt = null;
+    }
     return { success: true, room };
 }
 
+const HOST_RECONNECT_GRACE_MS = 30000; // 30s grace period for host reconnection
+
 /**
  * Handle a player leaving. Returns the opponent's playerId (if any) for notification.
- * If host leaves, the room is destroyed. If guest leaves, the room stays.
+ * If host leaves, the room enters a grace period — host can reconnect within 30s.
+ * If guest leaves, the room stays with the host.
  */
 function handlePlayerLeave(playerId) {
     const player = players.get(playerId);
@@ -75,9 +83,10 @@ function handlePlayerLeave(playerId) {
     let opponentId = null;
 
     if (room.hostId === playerId) {
-        // Host leaves — destroy room, notify guest
+        // Host leaves — enter grace period, notify guest
         opponentId = room.guestId;
-        rooms.delete(roomId);
+        room.hostDisconnectedAt = Date.now();
+        room.hostId = null;
     } else if (room.guestId === playerId) {
         // Guest leaves — keep room, notify host
         opponentId = room.hostId;
@@ -89,10 +98,29 @@ function handlePlayerLeave(playerId) {
     return opponentId;
 }
 
-// Clean up rooms older than 1 hour
+/**
+ * Check if a room is available for joining.
+ * Rooms in grace period (host disconnected) are still joinable.
+ */
+function isRoomJoinable(room) {
+    if (!room.hostId && room.hostDisconnectedAt) {
+        // Host disconnected but within grace period
+        return (Date.now() - room.hostDisconnectedAt) < HOST_RECONNECT_GRACE_MS;
+    }
+    return !!room.hostId;
+}
+
+// Clean up expired rooms every minute
 setInterval(() => {
     const now = Date.now();
     for (const [id, room] of rooms) {
+        // Remove rooms past grace period (host never reconnected)
+        if (!room.hostId && room.hostDisconnectedAt &&
+            now - room.hostDisconnectedAt > HOST_RECONNECT_GRACE_MS) {
+            rooms.delete(id);
+            continue;
+        }
+        // Remove rooms older than 1 hour
         if (now - room.createdAt > 3600000) {
             rooms.delete(id);
         }
@@ -198,11 +226,37 @@ function handleMessage(playerId, msg) {
 
     switch (msg.type) {
         case 'create_room': {
-            const roomId = createRoom(playerId, msg.name);
-            player.roomId = roomId;
-            player.name = msg.name || 'Host';
-            sendTo(player.ws, 'room_created', { roomId });
-            console.log(`Room ${roomId} created by ${playerId}`);
+            // Check if there's a room in grace period (host disconnected) that this player can reclaim
+            // We match by hostName since the old playerId is gone after disconnect
+            const playerName = msg.name || 'Host';
+            let reclaimedRoom = null;
+            for (const [id, room] of rooms) {
+                if (!room.hostId && room.hostDisconnectedAt &&
+                    room.hostName === playerName) {
+                    reclaimedRoom = room;
+                    reclaimedRoom.hostId = playerId;
+                    reclaimedRoom.hostDisconnectedAt = null;
+                    player.roomId = id;
+                    player.name = playerName;
+                    sendTo(player.ws, 'room_created', { roomId: id });
+                    console.log(`Room ${id} reclaimed by ${playerId}`);
+                    // Notify guest if present
+                    if (reclaimedRoom.guestId) {
+                        sendToPlayer(reclaimedRoom.guestId, 'opponent_joined', {
+                            name: playerName,
+                            symbol: 'X'
+                        });
+                    }
+                    break;
+                }
+            }
+            if (!reclaimedRoom) {
+                const roomId = createRoom(playerId, playerName);
+                player.roomId = roomId;
+                player.name = playerName;
+                sendTo(player.ws, 'room_created', { roomId });
+                console.log(`Room ${roomId} created by ${playerId}`);
+            }
             break;
         }
 
@@ -220,11 +274,13 @@ function handleMessage(playerId, msg) {
                     hostName: result.room.hostName
                 });
 
-                // Notify host
-                sendToPlayer(result.room.hostId, 'opponent_joined', {
-                    name: player.name,
-                    symbol: 'O'
-                });
+                // Notify host (if connected — skip if host is in grace period)
+                if (result.room.hostId) {
+                    sendToPlayer(result.room.hostId, 'opponent_joined', {
+                        name: player.name,
+                        symbol: 'O'
+                    });
+                }
 
                 console.log(`${playerId} joined room ${roomId}`);
             } else {

@@ -216,6 +216,11 @@
 
         UI.onButton('joinCancel', () => UI.toggleJoinContainer(false));
 
+        UI.onButton('lobbyErrorOk', () => {
+            UI.hideLobbyError();
+            UI.showScreen('menu');
+        });
+
         UI.onButton('copyCode', () => {
             const code = Multiplayer.getRoom();
             if (code) {
@@ -594,8 +599,12 @@
 
         Multiplayer.on('joinFailed', (data) => {
             console.log('JOIN: Failed -', data.reason);
-            UI.setPlayerNames('Error: ' + data.reason, '');
-            setTimeout(() => UI.showScreen('menu'), 2000);
+            const errorMsg = data.reason === 'Room not found'
+                ? 'Room not found. The host may have left or the room expired.'
+                : data.reason === 'Room is full'
+                    ? 'Room is full. Try another room code.'
+                    : data.reason || 'Failed to join room.';
+            UI.showLobbyError(errorMsg);
         });
 
         Multiplayer.on('opponentJoined', (data) => {

@@ -1057,6 +1057,22 @@ html, body {
     .wager-room-code { gap: 8px; padding: 8px 12px; }
 }
 
+/* ===== Lobby Error ===== */
+.lobby-error {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 14px 20px;
+    background: #2a1a1a;
+    border: 1px solid #ff4757;
+    border-radius: var(--radius);
+    font-size: 0.95rem;
+    color: #ff6b81;
+}
+
+.lobby-error .btn {
+    margin-top: 10px;
+}
+
 /* ===== Lobby Waiting ===== */
 .lobby-waiting {
     text-align: center;

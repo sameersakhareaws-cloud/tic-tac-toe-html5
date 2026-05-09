@@ -25,7 +25,8 @@ const UI = (() => {
         backMenu: document.getElementById('btn-back-menu'),
         wagerConfirm: document.getElementById('btn-wager-confirm'),
         wagerCoins: document.getElementById('btn-wager-coins'),
-        wagerBack: document.getElementById('btn-wager-back')
+        wagerBack: document.getElementById('btn-wager-back'),
+        lobbyErrorOk: document.getElementById('btn-lobby-error-ok')
     };
 
     const display = {
@@ -230,6 +231,18 @@ const UI = (() => {
         if (el) el.classList.add('hidden');
     }
 
+    function showLobbyError(text) {
+        const el = document.getElementById('lobby-error');
+        const txt = document.getElementById('lobby-error-text');
+        if (txt) txt.textContent = text;
+        if (el) el.classList.remove('hidden');
+    }
+
+    function hideLobbyError() {
+        const el = document.getElementById('lobby-error');
+        if (el) el.classList.add('hidden');
+    }
+
     // Switch lobby from "pre-join" (waiting for opponent) to "post-join" (opponent connected)
     function setLobbyJoinedState(isJoined) {
         const heading = document.querySelector('#lobby-screen h2');
@@ -426,6 +439,7 @@ const UI = (() => {
         setConnectionStatus, showGameOverForResult,
         onButton, onCellClick,
         showDisconnectModal, hideDisconnectModal,
-        setLobbyJoinedState, showLobbyWaiting, hideLobbyWaiting
+        setLobbyJoinedState, showLobbyWaiting, hideLobbyWaiting,
+        showLobbyError, hideLobbyError
     };
 })();
