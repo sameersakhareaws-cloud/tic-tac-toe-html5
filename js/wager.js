@@ -105,7 +105,7 @@ const Wager = (() => {
 
     function isValidWager(amount, playerBalance) {
         const bal = playerBalance || balance;
-        return amount >= MIN_WAGER && amount <= bal && amount % WAGER_STEP === 0;
+        return amount >= MIN_WAGER && amount <= bal && (amount - MIN_WAGER) % WAGER_STEP === 0;
     }
 
     async function deductWager(amount) {
