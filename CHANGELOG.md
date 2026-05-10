@@ -3,7 +3,7 @@
 **Platform:** CrazyGames SDK v3  
 **Live URL:** http://145.223.21.59:3002  
 **GitHub:** https://github.com/sameersakhareaws-cloud/tic-tac-toe-html5  
-**Current Version:** v1.3.2
+**Current Version:** v1.4.0
 
 ---
 
@@ -115,6 +115,26 @@ All 15 improvements applied to meet CrazyGames SDK requirements.
 7. **Debug logging** — Console logging for join flow troubleshooting
 
 ---
+
+## v1.4.0 — Blind Bid Wager System (May 10)
+
+### Feature: Poker-Style Blind Bid Wager
+Replaced the old host-only wager system with a fair blind bidding system:
+- **Both players bid secretly** — each player sets their wager privately using a slider or quick-bid presets
+- **Quick bid presets** — 10, 50, 100, 200, ALL IN buttons for fast bidding
+- **Minimum wins resolution** — the lower of the two bids becomes the final wager (both must be comfortable)
+- **Dramatic reveal** — both bids are revealed side-by-side with animation
+- **Confidence bonus** — if both players bid the exact same amount, a 10% bonus is added to the pot
+- **Veto power** — either player can veto the result and play a free game instead
+- **Wager deducted at game start** — both players' coins are deducted when the game begins
+- **Server-side bid handling** — new `place_bid`, `veto_bid`, `bid_start` message types
+
+### UI Changes
+- New 3-phase wager screen: Bid → Waiting → Reveal
+- Quick bid preset buttons
+- Reveal animation with VS display
+- Veto and Start Game buttons in reveal phase
+- Updated CSS for all new UI elements
 
 ## v1.3.2 — WS Port Fix & Debug Logging (May 10)
 

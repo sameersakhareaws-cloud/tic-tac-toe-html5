@@ -11,7 +11,7 @@
  */
 (function() {
     // ===== Version =====
-    const VERSION = 'v1.3.2';
+    const VERSION = 'v1.4.0';
     const versionEl = document.getElementById('version-display');
     if (versionEl) versionEl.textContent = VERSION;
 
@@ -381,43 +381,33 @@
         });
 
         // Wager screen buttons
-        UI.onButton('wagerConfirm', () => {
-            const amount = UI.getWagerAmount();
-            if (!Wager.isValidWager(amount)) {
-                UI.showWagerWarning(`Minimum wager is ${Wager.getMinWager()} coins`);
+        // Blind bid: Lock In button
+        UI.onButton('wagerLockin', () => {
+            if (bidLocked) return;
+            const balance = Wager.getBalance();
+            if (myBidAmount < Wager.getMinWager()) {
+                UI.showWagerWarning(`Minimum bid is ${Wager.getMinWager()} coins`);
                 return;
             }
-            if (amount > Wager.getBalance()) {
+            if (myBidAmount > balance) {
                 UI.showWagerWarning('Not enough coins!');
                 return;
             }
+            // Lock in the bid
+            bidLocked = true;
+            Multiplayer.sendBid(myBidAmount);
+            showBidWaitingScreen();
+            console.log('BID: Locked in bid:', myBidAmount);
+        });
 
-            currentWager = amount;
-            currentPot = amount * 2;
+        // Reveal phase: Start Game button
+        UI.onButton('wagerStart', () => {
+            Multiplayer.sendBidStart();
+        });
 
-            if (mySymbol === 'X') {
-                // Host sets wager — deduct host's coins, go back to lobby to wait
-                const deducted = Wager.deductWager(amount);
-                if (!deducted) {
-                    UI.showWagerWarning('Not enough coins!');
-                    return;
-                }
-                Multiplayer.setWager(amount, Wager.getBalance());
-                UI.updateCoinDisplay(Wager.getBalance());
-                UI.setLobbyWager(amount, amount * 2);
-                UI.setGameWager(amount * 2);
-                UI.showLobbyWaiting('Waiting for opponent to confirm wager...');
-                UI.showScreen('lobby');
-            } else {
-                // Guest confirms wager — deduct guest's coins
-                const deducted = Wager.deductWager(amount);
-                if (!deducted) {
-                    UI.showWagerWarning('Not enough coins!');
-                    return;
-                }
-                Multiplayer.confirmWager();
-                UI.updateCoinDisplay(Wager.getBalance());
-            }
+        // Reveal phase: Veto button
+        UI.onButton('wagerVeto', () => {
+            Multiplayer.sendVeto();
         });
 
         // Wager screen copy room code
@@ -473,10 +463,16 @@
                 UI.updateCoinDisplay(Wager.getBalance());
                 UI.pulseCoinHud();
                 Sound.playCoin();
-                // Update slider max
-                const maxWager = Wager.getMaxWager();
-                document.getElementById('wager-slider').max = maxWager;
-                document.getElementById('wager-host-balance').textContent = `💰 ${Wager.formatCoins(Wager.getBalance())}`;
+                // Update slider max and display
+                const balance = Wager.getBalance();
+                const slider = document.getElementById('wager-slider');
+                slider.max = balance;
+                if (myBidAmount > balance) {
+                    myBidAmount = balance;
+                    slider.value = myBidAmount;
+                    document.getElementById('wager-amount-display').textContent = myBidAmount;
+                }
+                document.getElementById('wager-host-balance').textContent = `💰 ${Wager.formatCoins(balance)}`;
                 trackEvent('coins_earned', { amount: result.earned });
             } else if (result.reason === 'cooldown') {
                 UI.showAdCooldown(result.remaining);
@@ -492,6 +488,8 @@
             rematchRoom = null;
             currentWager = 0;
             currentPot = 0;
+            myBidAmount = 0;
+            bidLocked = false;
             UI.showScreen('menu');
         });
 
@@ -566,30 +564,95 @@
     }
 
     // ===================================================================
-    // Wager Screen
+    // Blind Bid Wager Screen
     // ===================================================================
-    function showWagerScreen(isHost, hostWagerAmount, hostBalance) {
+    let myBidAmount = 0;
+    let bidLocked = false;
+
+    function showBlindBidScreen() {
         const username = CG.getUsername() || 'Player';
         const balance = Wager.getBalance();
-
-        if (isHost) {
-            const maxWager = Wager.getMaxWager(balance);
-            UI.setWagerScreen(username, balance, 'Waiting...', null, maxWager, false);
-            UI.showWagerWarning('');
-        } else {
-            const maxWager = Math.min(balance, hostWagerAmount || balance);
-            UI.setWagerScreen(username, balance, 'Host', hostBalance || 0, maxWager, true);
-            if (balance < hostWagerAmount) {
-                UI.showWagerWarning('Not enough coins! Get more coins to join.');
-            } else {
-                UI.showWagerWarning('');
-            }
-        }
-        // Show room code on wager screen
         const roomCode = Multiplayer.getRoom();
-        if (roomCode) UI.setWagerRoomCode(roomCode);
+
+        // Reset bid state
+        myBidAmount = Math.min(50, balance);
+        bidLocked = false;
+
+        // Update player info
+        document.getElementById('wager-host-name').textContent = username;
+        document.getElementById('wager-host-balance').textContent = `💰 ${Wager.formatCoins(balance)}`;
+        document.getElementById('wager-guest-name').textContent = 'Opponent';
+        document.getElementById('wager-guest-balance').textContent = '💰 --';
+        if (roomCode) document.getElementById('wager-room-code-display').textContent = roomCode;
+
+        // Setup slider
+        const slider = document.getElementById('wager-slider');
+        slider.min = Wager.getMinWager();
+        slider.max = balance;
+        slider.step = Wager.getWagerStep();
+        slider.value = myBidAmount;
+        slider.disabled = false;
+        document.getElementById('wager-amount-display').textContent = myBidAmount;
+
+        // Setup quick bid buttons
+        document.querySelectorAll('.btn-quick-bid').forEach(btn => {
+            btn.classList.remove('active');
+            btn.addEventListener('click', () => {
+                if (bidLocked) return;
+                const amt = btn.dataset.amount;
+                if (amt === 'allin') {
+                    myBidAmount = balance;
+                } else {
+                    myBidAmount = parseInt(amt, 10);
+                }
+                slider.value = myBidAmount;
+                document.getElementById('wager-amount-display').textContent = myBidAmount;
+                // Highlight selected
+                document.querySelectorAll('.btn-quick-bid').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // Slider input
+        slider.oninput = () => {
+            if (bidLocked) return;
+            myBidAmount = parseInt(slider.value, 10);
+            document.getElementById('wager-amount-display').textContent = myBidAmount;
+            document.querySelectorAll('.btn-quick-bid').forEach(b => b.classList.remove('active'));
+        };
+
+        // Show bid phase, hide others
+        document.getElementById('wager-bid-phase').classList.remove('hidden');
+        document.getElementById('wager-waiting-phase').classList.add('hidden');
+        document.getElementById('wager-reveal-phase').classList.add('hidden');
+
+        UI.showWagerWarning('');
         UI.showAdCooldown(Wager.getAdCooldownRemaining());
         UI.showScreen('wager');
+    }
+
+    function showBidWaitingScreen() {
+        document.getElementById('wager-bid-phase').classList.add('hidden');
+        document.getElementById('wager-waiting-phase').classList.remove('hidden');
+        document.getElementById('wager-reveal-phase').classList.add('hidden');
+    }
+
+    function showBidRevealScreen(yourBid, opponentBid, finalWager, pot, bonus) {
+        document.getElementById('wager-bid-phase').classList.add('hidden');
+        document.getElementById('wager-waiting-phase').classList.add('hidden');
+        document.getElementById('wager-reveal-phase').classList.remove('hidden');
+
+        document.getElementById('wager-reveal-you').textContent = yourBid;
+        document.getElementById('wager-reveal-opponent').textContent = opponentBid;
+        document.getElementById('wager-reveal-final').textContent = finalWager;
+        document.getElementById('wager-reveal-pot').textContent = pot;
+
+        const bonusEl = document.getElementById('wager-reveal-bonus');
+        if (bonus) {
+            bonusEl.classList.remove('hidden');
+        } else {
+            bonusEl.classList.add('hidden');
+        }
     }
 
     // ===================================================================
@@ -654,37 +717,47 @@
             console.log('JOIN: Opponent joined:', data.name, 'mySymbol:', mySymbol);
             const username = CG.getUsername() || 'Player';
             UI.setPlayerNames(username, data.name);
-            if (mySymbol === 'X') {
-                console.log('JOIN: Host showing wager screen');
-                showWagerScreen(true);
-            } else {
-                console.log('JOIN: Guest waiting for wager');
-                UI.setLobbyJoinedState(true);
-                UI.showLobbyWaiting('Waiting for host to set wager...');
+            UI.setLobbyJoinedState(true);
+            // Both players enter the blind bid screen
+            showBlindBidScreen();
+        });
+
+        // Blind bid events
+        Multiplayer.on('opponentBidLocked', () => {
+            console.log('BID: Opponent locked their bid');
+            // Show a subtle indicator that opponent has locked
+            if (bidLocked) {
+                // Both locked — reveal is coming
+                document.querySelector('.wager-waiting-text').textContent = 'Opponent locked in! Revealing...';
             }
         });
 
-        // Wager events
-        Multiplayer.on('wager_update', (data) => {
-            currentWager = data.amount;
+        Multiplayer.on('bidReveal', (data) => {
+            console.log('BID: Reveal — yourBid:', data.yourBid, 'opponentBid:', data.opponentBid, 'final:', data.finalWager);
+            currentWager = data.finalWager;
             currentPot = data.pot;
-            if (mySymbol === 'O') {
-                UI.hideLobbyWaiting();
-                // Guest sees wager screen with host's amount
-                const balance = Wager.getBalance();
-                const maxWager = Math.min(balance, data.amount);
-                // Update slider for guest (must match host's wager)
-                const slider = document.getElementById('wager-slider');
-                slider.value = data.amount;
-                slider.max = maxWager;
-                slider.min = data.amount;
-                UI.updateWagerDisplay();
-                showWagerScreen(false, data.amount, data.hostBalance || 0);
-            }
-            UI.setGameWager(data.pot);
+            showBidRevealScreen(data.yourBid, data.opponentBid, data.finalWager, data.pot, data.bonus);
         });
 
+        Multiplayer.on('bidVeto', (data) => {
+            console.log('BID: Vetoed by', data.vetoedBy);
+            // Veto — play free game (no wager)
+            currentWager = 0;
+            currentPot = 0;
+            // Show veto message on the reveal screen
+            document.getElementById('wager-reveal-resolution').innerHTML = '<p>✋ Vetoed! Playing a free game.</p>';
+            document.getElementById('wager-reveal-bonus').classList.add('hidden');
+            document.getElementById('btn-wager-veto').classList.add('hidden');
+            document.getElementById('btn-wager-start').textContent = '🎮 Start Free Game';
+            // Auto-start after delay
+            setTimeout(() => {
+                startGame(true);
+            }, 2000);
+        });
+
+        // bid_start from server — both players ready, start the game
         Multiplayer.on('wager_locked', (data) => {
+            console.log('BID: Wager locked — starting game');
             currentWager = data.wager;
             currentPot = data.pot;
             UI.hideLobbyWaiting();
@@ -766,6 +839,11 @@
 
         const username = CG.getUsername() || 'Player';
         if (multiplayer) {
+            // Deduct wager from both players
+            if (currentWager > 0) {
+                Wager.deductWager(currentWager);
+                UI.updateCoinDisplay(Wager.getBalance());
+            }
             const xName = mySymbol === 'X' ? username : 'Opponent';
             const oName = mySymbol === 'O' ? username : 'Opponent';
             UI.setGameInfo(xName, oName, true);

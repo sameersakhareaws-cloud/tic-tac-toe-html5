@@ -45,10 +45,10 @@
         </div>
     </div>
 
-    <!-- ===== Wager Screen ===== -->
+    <!-- ===== Wager Screen (Blind Bid) ===== -->
     <div id="wager-screen" class="screen">
         <div class="wager-content">
-            <h2>Set Wager</h2>
+            <h2>🎲 Blind Wager</h2>
 
             <div id="wager-room-code" class="wager-room-code">
                 <span>Room Code:</span>
@@ -70,28 +70,76 @@
                 </div>
             </div>
 
-            <div class="wager-slider-container">
-                <label class="wager-label">Wager Amount</label>
-                <input type="range" id="wager-slider" min="10" max="500" step="25" value="50" class="wager-slider">
-                <div class="wager-slider-labels">
-                    <span>10</span>
-                    <span id="wager-amount-display" class="wager-amount-display">50</span>
-                    <span>500</span>
+            <!-- Bid Phase: Both players set their wager privately -->
+            <div id="wager-bid-phase">
+                <div class="wager-bid-info">
+                    <p>Both players bid secretly. The <strong>lower</strong> bid wins.</p>
+                </div>
+
+                <div class="wager-slider-container">
+                    <label class="wager-label">Your Bid</label>
+                    <input type="range" id="wager-slider" min="10" max="500" step="25" value="50" class="wager-slider">
+                    <div class="wager-slider-labels">
+                        <span>10</span>
+                        <span id="wager-amount-display" class="wager-amount-display">50</span>
+                        <span>500</span>
+                    </div>
+                </div>
+
+                <!-- Quick Bid Presets -->
+                <div class="wager-quick-bids">
+                    <button class="btn btn-small btn-quick-bid" data-amount="10">10</button>
+                    <button class="btn btn-small btn-quick-bid" data-amount="50">50</button>
+                    <button class="btn btn-small btn-quick-bid" data-amount="100">100</button>
+                    <button class="btn btn-small btn-quick-bid" data-amount="200">200</button>
+                    <button class="btn btn-small btn-quick-bid btn-allin" data-amount="allin">ALL IN</button>
+                </div>
+
+                <div id="wager-warning" class="wager-warning hidden"></div>
+
+                <div class="wager-buttons">
+                    <button id="btn-wager-lockin" class="btn btn-accent">🔒 Lock In</button>
+                    <button id="btn-wager-coins" class="btn btn-secondary">💰 Get Coins</button>
+                    <button id="btn-wager-back" class="btn btn-ghost">← Back</button>
                 </div>
             </div>
 
-            <div class="wager-pot">
-                <span class="wager-pot-label">Pot:</span>
-                <span id="wager-pot-amount" class="wager-pot-amount">100</span>
-                <span class="wager-pot-icon">💰</span>
+            <!-- Waiting Phase: Player locked in, waiting for opponent -->
+            <div id="wager-waiting-phase" class="hidden">
+                <div class="wager-locked-info">
+                    <div class="lock-icon">🔒</div>
+                    <p>Your bid is locked!</p>
+                    <p class="wager-waiting-text">Waiting for opponent to bid...</p>
+                    <div class="wager-spinner"></div>
+                </div>
             </div>
 
-            <div id="wager-warning" class="wager-warning hidden"></div>
-
-            <div class="wager-buttons">
-                <button id="btn-wager-confirm" class="btn btn-accent">✅ Confirm Wager</button>
-                <button id="btn-wager-coins" class="btn btn-secondary">💰 Get Coins</button>
-                <button id="btn-wager-back" class="btn btn-ghost">← Back</button>
+            <!-- Reveal Phase: Both bids revealed -->
+            <div id="wager-reveal-phase" class="hidden">
+                <h3>🎲 Reveal</h3>
+                <div class="wager-reveal-container">
+                    <div class="wager-reveal-player">
+                        <span class="wager-reveal-label">You</span>
+                        <span id="wager-reveal-you" class="wager-reveal-amount">--</span>
+                    </div>
+                    <span class="wager-reveal-vs">VS</span>
+                    <div class="wager-reveal-player">
+                        <span class="wager-reveal-label">Opponent</span>
+                        <span id="wager-reveal-opponent" class="wager-reveal-amount">--</span>
+                    </div>
+                </div>
+                <div id="wager-reveal-resolution" class="wager-reveal-resolution">
+                    <p>Resolution: <strong>Lower bid wins</strong></p>
+                    <p>Final Wager: <span id="wager-reveal-final" class="wager-reveal-final-amount">--</span> 💰</p>
+                    <p>Pot: <span id="wager-reveal-pot" class="wager-reveal-pot-amount">--</span> 💰</p>
+                </div>
+                <div id="wager-reveal-bonus" class="wager-reveal-bonus hidden">
+                    <span class="bonus-icon">✨</span> Perfect Match! +10% Bonus!
+                </div>
+                <div class="wager-buttons">
+                    <button id="btn-wager-start" class="btn btn-accent">🎮 Start Game</button>
+                    <button id="btn-wager-veto" class="btn btn-ghost">✋ Veto (Free Game)</button>
+                </div>
             </div>
 
             <p id="wager-ad-cooldown" class="wager-ad-cooldown hidden"></p>

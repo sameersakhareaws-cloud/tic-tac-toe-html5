@@ -93,6 +93,8 @@ const Multiplayer = (() => {
         hostWagerConfirmed = false;
         guestWagerConfirmed = false;
         guestBalance = null;
+        myBid = undefined;
+        opponentBid = undefined;
     }
 
     // ===== Connection =====
@@ -276,23 +278,28 @@ const Multiplayer = (() => {
             case 'rematch_accepted':
                 emit('rematchAccepted', {});
                 break;
-            case 'wager_set':
-                if (mySymbol === 'O') {
-                    currentWager = msg.amount;
-                    hostWagerConfirmed = true;
-                    guestBalance = msg.hostBalance;
-                    emit('wager_update', { amount: msg.amount, pot: msg.amount * 2, hostConfirmed: true, guestConfirmed: false });
-                }
+            // ===== Blind Bid Wager Messages =====
+            case 'bid_locked':
+                // Opponent has locked their bid
+                emit('opponentBidLocked', {});
                 break;
-            case 'wager_confirm':
-                if (mySymbol === 'X') {
-                    guestWagerConfirmed = true;
-                    emit('wager_update', { amount: currentWager, pot: currentWager * 2, hostConfirmed: true, guestConfirmed: true });
-                    emit('wager_locked', { wager: currentWager, pot: currentWager * 2 });
-                }
+            case 'bid_reveal':
+                // Both bids revealed: { yourBid, opponentBid, finalWager, pot, bonus }
+                emit('bidReveal', {
+                    yourBid: msg.yourBid,
+                    opponentBid: msg.opponentBid,
+                    finalWager: msg.finalWager,
+                    pot: msg.pot,
+                    bonus: msg.bonus || false
+                });
                 break;
-            case 'wager_locked':
-                // Server confirmed both wagers locked
+            case 'bid_veto':
+                // A player vetoed — play free game
+                emit('bidVeto', { vetoedBy: msg.vetoedBy });
+                break;
+            case 'bid_start':
+                // Both players ready, start the game
+                currentWager = msg.wager;
                 emit('wager_locked', { wager: msg.wager, pot: msg.pot });
                 break;
             case 'error':
@@ -374,6 +381,30 @@ const Multiplayer = (() => {
         }
     }
 
+    function sendBid(amount) {
+        if (useWS) {
+            send({ type: 'place_bid', roomId: myRoom, amount });
+        } else {
+            localSend({ type: 'place_bid', roomId: myRoom, amount });
+        }
+    }
+
+    function sendVeto() {
+        if (useWS) {
+            send({ type: 'veto_bid', roomId: myRoom });
+        } else {
+            localSend({ type: 'veto_bid', roomId: myRoom });
+        }
+    }
+
+    function sendBidStart() {
+        if (useWS) {
+            send({ type: 'bid_start', roomId: myRoom });
+        } else {
+            localSend({ type: 'bid_start', roomId: myRoom });
+        }
+    }
+
     function leaveRoom() {
         if (myRoom) {
             if (useWS) {
@@ -397,6 +428,7 @@ const Multiplayer = (() => {
         connect, on, off,
         createRoom, joinRoom, sendMove,
         requestRematch, acceptRematch, leaveRoom,
+        sendBid, sendVeto, sendBidStart,
         setWager, confirmWager, getWagerState, resetWager,
         isConnected, getRoom, getSymbol, getName
     };

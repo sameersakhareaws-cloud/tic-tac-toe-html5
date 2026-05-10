@@ -40,10 +40,10 @@ function createRoom(hostId, hostName) {
         guestName: null,
         guestId: null,
         createdAt: Date.now(),
-        // Wager state
+        // Blind bid state
+        hostBid: undefined,
+        guestBid: undefined,
         wager: 0,
-        wagerHostConfirmed: false,
-        wagerGuestConfirmed: false,
         wagerLocked: false
     });
     return roomId;
@@ -329,38 +329,73 @@ function handleMessage(playerId, msg) {
             break;
         }
 
-        case 'wager_set': {
+        // ===== Blind Bid Wager Handlers =====
+
+        case 'place_bid': {
             const room = rooms.get(msg.roomId);
             if (!room) {
                 sendTo(player.ws, 'error', { message: 'Room not found' });
                 return;
             }
-            room.wager = msg.amount;
-            room.wagerHostConfirmed = true;
-            room.wagerGuestConfirmed = false;
-            // Notify guest
-            if (room.guestId) {
-                sendToPlayer(room.guestId, 'wager_set', {
-                    amount: msg.amount,
-                    pot: msg.amount * 2,
-                    hostBalance: msg.hostBalance || 0
-                });
+            // Store the bid on the room
+            if (room.hostId === playerId) {
+                room.hostBid = msg.amount;
+            } else if (room.guestId === playerId) {
+                room.guestBid = msg.amount;
+            }
+            // Notify opponent that a bid was locked (but not the amount)
+            const opponentId = (room.hostId === playerId) ? room.guestId : room.hostId;
+            if (opponentId) {
+                sendToPlayer(opponentId, 'bid_locked');
+            }
+            // If both bids are in, reveal
+            if (room.hostBid !== undefined && room.guestBid !== undefined) {
+                const finalWager = Math.min(room.hostBid, room.guestBid);
+                const pot = finalWager * 2;
+                const bonus = room.hostBid === room.guestBid;
+                room.wager = finalWager;
+                room.wagerLocked = true;
+                // Send reveal to host
+                if (room.hostId) {
+                    sendToPlayer(room.hostId, 'bid_reveal', {
+                        yourBid: room.hostBid,
+                        opponentBid: room.guestBid,
+                        finalWager,
+                        pot,
+                        bonus
+                    });
+                }
+                // Send reveal to guest
+                if (room.guestId) {
+                    sendToPlayer(room.guestId, 'bid_reveal', {
+                        yourBid: room.guestBid,
+                        opponentBid: room.hostBid,
+                        finalWager,
+                        pot,
+                        bonus
+                    });
+                }
+                console.log(`Bid reveal: host=${room.hostBid} guest=${room.guestBid} final=${finalWager} bonus=${bonus}`);
             }
             break;
         }
 
-        case 'wager_confirm': {
+        case 'veto_bid': {
             const room = rooms.get(msg.roomId);
-            if (!room) {
-                sendTo(player.ws, 'error', { message: 'Room not found' });
-                return;
-            }
-            room.wagerGuestConfirmed = true;
-            room.wagerLocked = true;
-            // Notify both players
-            const wagerData = { wager: room.wager, pot: room.wager * 2 };
-            if (room.hostId) sendToPlayer(room.hostId, 'wager_locked', wagerData);
-            if (room.guestId) sendToPlayer(room.guestId, 'wager_locked', wagerData);
+            if (!room) return;
+            // Notify both players of veto
+            if (room.hostId) sendToPlayer(room.hostId, 'bid_veto', { vetoedBy: playerId });
+            if (room.guestId) sendToPlayer(room.guestId, 'bid_veto', { vetoedBy: playerId });
+            break;
+        }
+
+        case 'bid_start': {
+            const room = rooms.get(msg.roomId);
+            if (!room || !room.wagerLocked) return;
+            // Notify both players to start the game
+            const startData = { wager: room.wager, pot: room.wager * 2 };
+            if (room.hostId) sendToPlayer(room.hostId, 'bid_start', startData);
+            if (room.guestId) sendToPlayer(room.guestId, 'bid_start', startData);
             break;
         }
 
