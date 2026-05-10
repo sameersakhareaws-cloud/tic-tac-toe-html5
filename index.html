@@ -23,6 +23,7 @@
                 <div id="loading-progress-bar" class="loading-progress-bar"></div>
             </div>
         </div>
+        <span id="version-display" class="version-display">v1.3.0</span>
     </div>
 
     <!-- ===== Main Menu ===== -->
@@ -173,7 +174,7 @@
             <p id="result-subtext"></p>
             <div id="result-coins" class="result-coins"></div>
             <div class="gameover-buttons">
-                <button id="btn-rematch" class="btn btn-accent">🔄 New Wager</button>
+                <button id="btn-rematch" class="btn btn-accent">🔄 Play Again</button>
                 <button id="btn-back-menu" class="btn btn-secondary">🏠 Main Menu</button>
             </div>
         </div>
@@ -198,6 +199,18 @@
         </div>
     </div>
 
+    <!-- Rematch Request Modal -->
+    <div id="rematch-request-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-emoji">🔄</div>
+            <h2>Rematch Request</h2>
+            <p>Your opponent wants a rematch. Accept?</p>
+            <div class="modal-buttons">
+                <button id="btn-rematch-accept" class="btn btn-accent">✅ Accept</button>
+                <button id="btn-rematch-reject" class="btn btn-secondary">❌ Reject</button>
+            </div>
+        </div>
+    </div>
     <!-- ===== Ad Overlay ===== -->
     <div id="ad-overlay" class="ad-overlay">
         <div class="ad-overlay-content">

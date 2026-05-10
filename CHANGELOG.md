@@ -3,7 +3,7 @@
 **Platform:** CrazyGames SDK v3  
 **Live URL:** http://145.223.21.59:3002  
 **GitHub:** https://github.com/sameersakhareaws-cloud/tic-tac-toe-html5  
-**Current Version:** v1.3.0
+**Current Version:** v1.3.1
 
 ---
 
@@ -115,6 +115,17 @@ All 15 improvements applied to meet CrazyGames SDK requirements.
 7. **Debug logging** — Console logging for join flow troubleshooting
 
 ---
+
+## v1.3.1 — Rematch Room Reuse Fix (May 10)
+
+### Bug Fix
+- **Rematch creates new room instead of reusing existing one** — Both the "Play Again" handler and the "Rematch Accept" handler were calling `Multiplayer.createRoom()` which generated a new room code. Fixed by:
+  - Storing `rematchRoom` state variable to track the original room
+  - "Play Again" now calls `Multiplayer.requestRematch()` on the existing room instead of creating a new one
+  - "Rematch Accept" calls `Multiplayer.acceptRematch()` on the existing room
+  - `rematchAccepted` event handler shows wager screen on the same room (no `createRoom()` call)
+  - Added proper `rematchRoom` cleanup on leave/reject/menu navigation
+- **WS port mismatch** — Game was connecting to port 3002 but server runs on 3000. Updated `WS_URL` to port 3000.
 
 ## v1.3.0 — Polish, Rematch Modal & Versioning (May 10)
 

@@ -12,6 +12,13 @@ const UI = (() => {
     };
 
     const buttons = {
+        // Existing buttons
+        // ... (will be expanded below)
+        // Rematch request modal buttons
+        rematchAccept: document.getElementById('btn-rematch-accept'),
+        rematchReject: document.getElementById('btn-rematch-reject'),
+        // Existing buttons
+        // ... (will be expanded below)
         single: document.getElementById('btn-single'),
         create: document.getElementById('btn-create'),
         join: document.getElementById('btn-join'),
@@ -402,6 +409,16 @@ const UI = (() => {
         if (modal) modal.classList.remove('active');
     }
 
+    // ===== Rematch Request Modal =====
+    function showRematchRequest() {
+        const modal = document.getElementById('rematch-request-modal');
+        if (modal) modal.classList.add('active');
+    }
+    function hideRematchRequest() {
+        const modal = document.getElementById('rematch-request-modal');
+        if (modal) modal.classList.remove('active');
+    }
+
     // ===== Event Binding =====
     function onButton(id, callback) {
         buttonCallbacks[id] = callback;
@@ -439,6 +456,7 @@ const UI = (() => {
         setConnectionStatus, showGameOverForResult,
         onButton, onCellClick,
         showDisconnectModal, hideDisconnectModal,
+        showRematchRequest, hideRematchRequest,
         setLobbyJoinedState, showLobbyWaiting, hideLobbyWaiting,
         showLobbyError, hideLobbyError
     };

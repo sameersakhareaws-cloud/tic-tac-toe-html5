@@ -10,6 +10,11 @@
  * 6. Rematch → goes back to wager screen
  */
 (function() {
+    // ===== Version =====
+    const VERSION = 'v1.3.1';
+    const versionEl = document.getElementById('version-display');
+    if (versionEl) versionEl.textContent = VERSION;
+
     // ===== State =====
     let isMultiplayer = false;
     let mySymbol = null;
@@ -19,6 +24,7 @@
     let bytebrewReady = false;
     let currentWager = 0;
     let currentPot = 0;
+    let rematchRoom = null; // Room code to reuse for rematch (prevents new room creation)
 
     // ===================================================================
     // Sound Effects
@@ -310,6 +316,7 @@
             CG.leftRoom();
             isMultiplayer = false;
             mySymbol = null;
+            rematchRoom = null;
             currentWager = 0;
             currentPot = 0;
             UI.clearLobbyWager();
@@ -325,6 +332,7 @@
             CG.gameplayStop();
             isMultiplayer = false;
             mySymbol = null;
+            rematchRoom = null;
             currentWager = 0;
             currentPot = 0;
             TicTacToe.reset();
@@ -333,16 +341,19 @@
             UI.showScreen('menu');
         });
 
-        // Rematch → go to wager screen (not straight to game)
+        // Rematch — reuse existing room, don't create a new one
         UI.onButton('rematch', () => {
             if (isMultiplayer) {
-                // For multiplayer, go back to wager screen
                 TicTacToe.reset();
                 UI.clearBoard();
-                const username = CG.getUsername() || 'Player';
-                Multiplayer.createRoom(username);
-                showWagerScreen(true);
-                trackEvent('rematch_new_wager');
+                // Store the room code for rematch reuse
+                rematchRoom = Multiplayer.getRoom();
+                // Send rematch request on the EXISTING room — no new room created
+                Multiplayer.requestRematch();
+                // Show waiting state while opponent decides
+                UI.showLobbyWaiting('Waiting for opponent to accept rematch...');
+                UI.showScreen('lobby');
+                trackEvent('rematch_requested');
             } else {
                 TicTacToe.reset();
                 UI.clearBoard();
@@ -477,6 +488,7 @@
             Multiplayer.leaveRoom();
             isMultiplayer = false;
             mySymbol = null;
+            rematchRoom = null;
             currentWager = 0;
             currentPot = 0;
             UI.showScreen('menu');
@@ -495,6 +507,7 @@
             if (isMultiplayer) { Multiplayer.leaveRoom(); CG.leftRoom(); }
             isMultiplayer = false;
             mySymbol = null;
+            rematchRoom = null;
             currentWager = 0;
             currentPot = 0;
             TicTacToe.reset();
@@ -510,6 +523,33 @@
             if (isMultiplayer) { Multiplayer.leaveRoom(); CG.leftRoom(); }
             isMultiplayer = false;
             mySymbol = null;
+            rematchRoom = null;
+            currentWager = 0;
+            currentPot = 0;
+            TicTacToe.reset();
+            UI.clearBoard();
+            UI.showScreen('menu');
+        });
+
+        // Rematch request modal buttons
+        UI.onButton('rematchAccept', () => {
+            UI.hideRematchRequest();
+            TicTacToe.reset();
+            UI.clearBoard();
+            // Accept rematch on the existing room — no new room created
+            rematchRoom = Multiplayer.getRoom();
+            Multiplayer.acceptRematch();
+            trackEvent('rematch_accepted');
+        });
+        UI.onButton('rematchReject', () => {
+            UI.hideRematchRequest();
+            // Reject — go back to menu
+            cleanupJoinListener();
+            Multiplayer.leaveRoom();
+            CG.leftRoom();
+            isMultiplayer = false;
+            mySymbol = null;
+            rematchRoom = null;
             currentWager = 0;
             currentPot = 0;
             TicTacToe.reset();
@@ -573,6 +613,7 @@
             console.log('MP: Room created:', data.roomId);
             UI.setRoomCode(data.roomId);
             mySymbol = 'X';
+            rematchRoom = data.roomId; // Track room for potential rematch
             const username = CG.getUsername() || 'Player';
             UI.setPlayerNames(username, 'Waiting...');
             CG.updateRoom({
@@ -587,6 +628,7 @@
             console.log('JOIN: Successfully joined room', data.roomId);
             UI.setRoomCode(data.roomId);
             mySymbol = data.symbol;
+            rematchRoom = data.roomId; // Track room for potential rematch
             const username = CG.getUsername() || 'Player';
             const hostName = data.hostName || 'Host';
             UI.setPlayerNames(hostName, data.symbol === 'O' ? username : 'Waiting...');
@@ -666,6 +708,7 @@
                     Wager.refundWager(currentWager);
                     UI.updateCoinDisplay(Wager.getBalance());
                 }
+                rematchRoom = null;
                 currentWager = 0;
                 currentPot = 0;
                 UI.clearLobbyWager();
@@ -685,16 +728,19 @@
         });
 
         Multiplayer.on('rematchRequested', () => {
-            Multiplayer.acceptRematch();
+            UI.showRematchRequest();
         });
 
         Multiplayer.on('rematchAccepted', () => {
             TicTacToe.reset();
             UI.clearBoard();
-            // Rematch goes to wager screen, not straight to game
+            UI.hideLobbyWaiting();
+            // Both players reuse the SAME room — no new room creation
+            // The server keeps the room alive, just reset game state
             const username = CG.getUsername() || 'Player';
-            Multiplayer.createRoom(username);
-            showWagerScreen(true);
+            // Determine if we're host (X) or guest (O) in the existing room
+            const isHost = mySymbol === 'X';
+            showWagerScreen(isHost);
             trackEvent('rematch_accepted', { mode: 'wager' });
         });
 
