@@ -26,7 +26,7 @@ const Multiplayer = (() => {
     let guestWagerConfirmed = false;
     let guestBalance = null;
 
-    const WS_URL = 'ws://' + window.location.hostname + ':3000';
+    const WS_URL = 'ws://' + window.location.host;
     const WS_TIMEOUT = 3000;
     const STORAGE_PREFIX = 'ttmp_';
 

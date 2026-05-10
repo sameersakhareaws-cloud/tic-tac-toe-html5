@@ -3,7 +3,7 @@
 **Platform:** CrazyGames SDK v3  
 **Live URL:** http://145.223.21.59:3002  
 **GitHub:** https://github.com/sameersakhareaws-cloud/tic-tac-toe-html5  
-**Current Version:** v1.3.1
+**Current Version:** v1.3.2
 
 ---
 
@@ -115,6 +115,17 @@ All 15 improvements applied to meet CrazyGames SDK requirements.
 7. **Debug logging** — Console logging for join flow troubleshooting
 
 ---
+
+## v1.3.2 — WS Port Fix & Debug Logging (May 10)
+
+### Bug Fix
+- **WebSocket port mismatch** — `WS_URL` was hardcoded to port 3000 but server runs on port 3002. Changed to `ws://' + window.location.host` so it always matches the serving port.
+- **Added global error handlers** — `window.onerror` and `unhandledrejection` to catch silent JS errors.
+- **Added flow debug logging** — console logs throughout the join flow for easier debugging.
+
+### PM2 Setup
+- Restored master `ecosystem.config.js` managing all 3 projects (tic-tac-toe:3002, deciderai:3001, pm2-webui:4343)
+- `pm2 save` to persist across restarts
 
 ## v1.3.1 — Rematch Room Reuse Fix (May 10)
 

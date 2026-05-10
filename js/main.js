@@ -11,7 +11,7 @@
  */
 (function() {
     // ===== Version =====
-    const VERSION = 'v1.3.1';
+    const VERSION = 'v1.3.2';
     const versionEl = document.getElementById('version-display');
     if (versionEl) versionEl.textContent = VERSION;
 
@@ -198,6 +198,7 @@
         UI.onButton('create', () => {
             isMultiplayer = true;
             const username = CG.getUsername() || 'Player';
+            console.log('FLOW: Create room clicked, username:', username);
             Multiplayer.createRoom(username);
             UI.showScreen('lobby');
             trackEvent('room_created');
@@ -861,6 +862,16 @@
             }
         }, 1000);
     }
+
+    // ===================================================================
+    // Global Error Handler
+    // ===================================================================
+    window.addEventListener('error', (e) => {
+        console.error('GLOBAL ERROR:', e.message, 'at', e.filename + ':' + e.lineno);
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+        console.error('UNHANDLED PROMISE REJECTION:', e.reason);
+    });
 
     // ===================================================================
     // Start
