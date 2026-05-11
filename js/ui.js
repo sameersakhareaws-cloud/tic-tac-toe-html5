@@ -150,10 +150,10 @@ const UI = (() => {
 
     // ===== Wager Screen =====
     function setWagerScreen(hostName, hostBalance, guestName, guestBalance, maxWager, isGuestMode) {
-        display.wagerHostName.textContent = hostName;
-        display.wagerHostBalance.textContent = `💰 ${Wager.formatCoins(hostBalance)}`;
-        display.wagerGuestName.textContent = guestName || 'Waiting...';
-        display.wagerGuestBalance.textContent = guestBalance !== null ? `💰 ${Wager.formatCoins(guestBalance)}` : '💰 --';
+        if (display.wagerHostName) display.wagerHostName.textContent = hostName;
+        if (display.wagerHostBalance) display.wagerHostBalance.textContent = `💰 ${Wager.formatCoins(hostBalance)}`;
+        if (display.wagerGuestName) display.wagerGuestName.textContent = guestName || 'Waiting...';
+        if (display.wagerGuestBalance) display.wagerGuestBalance.textContent = guestBalance !== null ? `💰 ${Wager.formatCoins(guestBalance)}` : '💰 --';
 
         // Configure slider
         const slider = display.wagerSlider;
@@ -177,8 +177,8 @@ const UI = (() => {
 
     function updateWagerDisplay() {
         const amount = parseInt(display.wagerSlider.value, 10);
-        display.wagerAmountDisplay.textContent = amount;
-        display.wagerPotAmount.textContent = amount * 2;
+        if (display.wagerAmountDisplay) display.wagerAmountDisplay.textContent = amount;
+        if (display.wagerPotAmount) display.wagerPotAmount.textContent = amount * 2;
     }
 
     function getWagerAmount() {
