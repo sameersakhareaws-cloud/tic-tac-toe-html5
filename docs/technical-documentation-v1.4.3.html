@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Tic-Tac-Toe HTML5 — Technical Documentation v1.4.3</title>
+<style>
+body { font-family: 'Segoe UI', system-ui, sans-serif; max-width: 900px; margin: 0 auto; padding: 40px 20px; line-height: 1.7; color: #333; }
+h1 { font-size: 2.2em; color: #1a1a2e; border-bottom: 3px solid #6c63ff; padding-bottom: 10px; }
+h2 { font-size: 1.6em; color: #2d2d5e; margin-top: 40px; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; }
+h3 { font-size: 1.3em; color: #444; margin-top: 30px; }
+h4 { font-size: 1.1em; color: #555; margin-top: 20px; }
+code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 0.9em; }
+pre { background: #1a1a2e; color: #e0e0f0; padding: 16px 20px; border-radius: 8px; overflow-x: auto; font-size: 0.85em; line-height: 1.5; }
+pre code { background: none; color: inherit; padding: 0; }
+.toc { background: #f8f8ff; border: 1px solid #e0e0ff; border-radius: 8px; padding: 20px 30px; margin: 20px 0; }
+.toc ul { list-style-type: none; padding-left: 0; }
+.toc li { margin: 4px 0; }
+.toc a { color: #6c63ff; text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+.note { background: #fff8e1; border-left: 4px solid #ffb800; padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; }
+.warning { background: #ffebee; border-left: 4px solid #f44336; padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; }
+.info { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+th { background: #6c63ff; color: white; padding: 10px 14px; text-align: left; }
+td { padding: 10px 14px; border-bottom: 1px solid #eee; }
+tr:hover { background: #f8f8ff; }
+.file { font-family: 'Courier New', monospace; color: #6c63ff; }
+</style>
+</head>
+<body>
+
+<h1>⚡ Tic-Tac-Toe HTML5 — Technical Documentation</h1>
+<p><strong>Version:</strong> v1.4.3 | <strong>Last Updated:</strong> 2026-05-11 | <strong>Author:</strong> Sameer (Sam)</p>
+<p><strong>Platform:</strong> CrazyGames SDK v3 | <strong>Live URL:</strong> http://145.223.21.59:3002</p>
+<p><strong>GitHub:</strong> https://github.com/sameersakhareaws-cloud/tic-tac-toe-html5</p>
+
+<div class="info">
+<strong>Purpose of This Document:</strong> This is a complete technical reference for the Tic-Tac-Toe HTML5 project. It explains every file, every module, every function, and the overall architecture so that Sam (or any developer) can understand, learn from, and maintain the codebase. Each version of the game will have its own documentation snapshot for tracking changes.
+</div>
+
+<div class="toc">
+<h2>📑 Table of Contents</h2>
+<ul>
+<li><a href="#1-overview">1. Project Overview</a></li>
+<li><a href="#2-tech-stack">2. Technology Stack</a></li>
+<li><a href="#3-folder-structure">3. File &amp; Folder Structure</a></li>
+<li><a href="#4-architecture">4. Architecture &amp; Module Design</a></li>
+<li><a href="#5-html-layer">5. HTML Layer (index.html)</a></li>
+<li><a href="#6-css-layer">6. CSS Layer (style.css)</a></li>
+<li><a href="#7-js-game">7. Game Logic Module (game.js)</a></li>
+<li><a href="#8-js-ui">8. UI Module (ui.js)</a></li>
+<li><a href="#9-js-wager">9. Wager System (wager.js)</a></li>
+<li><a href="#10-js-multiplayer">10. Multiplayer Module (multiplayer.js)</a></li>
+<li><a href="#11-js-crazygames">11. CrazyGames SDK Wrapper (crazygames.js)</a></li>
+<li><a href="#12-js-sitelock">12. Sitelock Module (sitelock.js)</a></li>
+<li><a href="#13-js-main">13. Main Orchestrator (main.js)</a></li>
+<li><a href="#14-server">14. WebSocket Server (server/)</a></li>
+<li><a href="#15-tests">15. Test Suite</a></li>
+<li><a href="#16-crazygames-publishing">16. CrazyGames Platform Guide</a></li>
+<li><a href="#17-deployment">17. VPS Deployment</a></li>
+<li><a href="#18-common-errors">18. Common Errors &amp; Debugging</a></li>
+<li><a href="#19-changelog">19. Changelog</a></li>
+</ul>
+</div>
+
+<!-- ===== SECTION 1 ===== -->
+<h2 id="1-overview">1. Project Overview</h2>
+<p>This is a <strong>Tic-Tac-Toe HTML5 game</strong> designed for publishing on <a href="https://www.crazygames.com">CrazyGames.com</a>, the world's leading HTML5 game platform. The game features:</p>
+<ul>
+<li><strong>Single Player Mode</strong> — Classic local Tic-Tac-Toe with turn indicator and win/draw detection</li>
+<li><strong>Multiplayer Mode</strong> — Real-time room-based multiplayer via WebSocket relay server</li>
+<li><strong>Wager System</strong> — Poker-style blind bid wager where both players bid secretly; lower bid wins</li>
+<li><strong>Coin Economy</strong> — Persistent coin balance (cloud-synced via CrazyGames SDK), starting with 500 coins</li>
+<li><strong>Rematch System</strong> — Rematch requests with accept/reject modal, preserving the room</li>
+<li><strong>Ad Integration</strong> — Midgame ads (interstitial) and rewarded ads for earning coins</li>
+<li><strong>Responsive Design</strong> — Dark theme, mobile-friendly, touch-optimized</li>
+</ul>
+
+<div class="info">
+<strong>What is CrazyGames?</strong> CrazyGames is a free online gaming platform that hosts HTML5 games. Game developers upload their games, and CrazyGames handles distribution, monetization (ads), and providing SDK features like user accounts, cloud saves, and multiplayer matchmaking. Developers earn revenue based on ad impressions.
+</div>
+
+<!-- ===== SECTION 2 ===== -->
+<h2 id="2-tech-stack">2. Technology Stack</h2>
+<table>
+<tr><th>Layer</th><th>Technology</th><th>Purpose</th></tr>
+<tr><td>Frontend</td><td>HTML5, CSS3, Vanilla JavaScript (ES6+)</td><td>Game UI, animations, screen transitions</td></tr>
+<tr><td>Networking</td><td>WebSocket (native browser API)</td><td>Real-time multiplayer communication</td></tr>
+<tr><td>Fallback</td><td>localStorage events</td><td>Cross-tab multiplayer in dev (no server needed)</td></tr>
+<tr><td>Backend</td><td>Node.js + <code>ws</code> library</td><td>WebSocket relay server for room management</td></tr>
+<tr><td>Platform</td><td>CrazyGames SDK v3</td><td>Ads, user auth, cloud saves, room tracking</td></tr>
+<tr><td>Analytics</td><td>ByteBrew</td><td>Custom event tracking</td></tr>
+<tr><td>Testing</td><td>Jest (29.x)</td><td>Server-side WebSocket E2E tests</td></tr>
+<tr><td>Deployment</td><td>PM2 (Process Manager 2)</td><td>Production process management on VPS</td></tr>
+<tr><td>Version Control</td><td>Git + GitHub</td><td>Code versioning and backup</td></tr>
+</table>
+
+<div class="note">
+<strong>No frameworks used:</strong> This project intentionally uses zero frontend frameworks (no React, Vue, Angular, jQuery). Everything is vanilla JavaScript with ES6+ features (arrow functions, template literals, destructuring, modules via IIFEs). This is a CrazyGames best practice — keep the bundle size minimal for fast loading.
+</div>
+
+<!-- ===== SECTION 3 ===== -->
+<h2 id="3-folder-structure">3. File &amp; Folder Structure</h2>
+
+<pre><code>tic-tac-toe-html5/
+├── index.html                  ← Main HTML entry point (all screens, modals, script loading)
+├── package.json                ← Node.js dependencies (ws, jest)
+├── jest.config.js              ← Jest test configuration
+├── .gitignore                  ← Files excluded from git
+├── temp.json                   ← Temporary file (can be removed)
+├── README.md                   ← Quick start guide
+├── CHANGELOG.md                ← Detailed change history (v1.0.0 through v1.4.0)
+│
+├── css/
+│   └── style.css               ← ALL styles (reset, screens, board, wager, lobby, modals, responsive)
+│
+├── js/
+│   ├── sitelock.js             ← Domain whitelist enforcement (security)
+│   ├── crazygames.js           ← CrazyGames SDK wrapper (ads, user, rooms, data)
+│   ├── wager.js                ← Coin economy & wager logic
+│   ├── game.js                 ← Pure Tic-Tac-Toe game logic (board, win detection)
+│   ├── multiplayer.js          ← Room management, WebSocket/localStorage networking
+│   ├── ui.js                   ← DOM manipulation, screen transitions, all UI updates
+│   └── main.js                 ← App orchestrator (initializes everything, event handlers)
+│
+├── server/
+│   ├── server.js               ← WebSocket relay server (room CRUD, message routing)
+│   ├── roomManager.js          ← Room/player data management (pure logic, testable)
+│   └── __tests__/
+│       ├── e2e.test.js         ← 12 flow tests, 58 total tests (Jest)
+│       └── roomManager.test.js ← Room manager unit tests
+│
+├── coverage/                   ← Auto-generated by Jest (can be gitignored)
+└── node_modules/               ← npm dependencies (ws, jest, etc.)
+</code></pre>
+
+<div class="info">
+<strong>Module Pattern:</strong> Every JavaScript file uses the <strong>IIFE pattern</strong> (Immediately Invoked Function Expression): <code>const Module = (() => { ... return { ... }; })()</code>. This creates a private scope with exposed public methods. It's the ES6 equivalent of a class/module without using actual ES modules (which would require a bundler).
+</div>
+
+<!-- ===== SECTION 4 ===== -->
+<h2 id="4-architecture">4. Architecture &amp; Module Design</h2>
+
+<h3>4.1 Overall Data Flow</h3>
+<pre><code>┌─────────────────────────────────────────────────────────┐
+│                    index.html                            │
+│  (Screens: Loading → Menu → Lobby → Wager → Game → Over)│
+└────────────────────────┬────────────────────────────────┘
+                         │ loads
+          ┌──────────────┴──────────────┐
+          │                             │
+    ┌─────▼─────┐                 ┌─────▼─────┐
+    │  js/*.js   │                 │ server/   │
+    │  (client)  │◄──WebSocket──►  │ server.js │
+    └─────┬─────┘                 └───────────┘
+          │
+    ┌─────▼─────┐
+    │ CrazyGames │
+    │   SDK v3   │
+    └───────────┘</code></pre>
+
+<h3>4.2 Module Dependency Chain</h3>
+<p>Scripts load in this specific order (bottom of <code>&lt;body&gt;</code> in index.html):</p>
+<pre><code>sitelock.js → crazygames-sdk-v3.js (CDN) → crazygames.js → wager.js → game.js → multiplayer.js → ui.js → main.js</code></pre>
+<ul>
+<li><strong>sitelock.js</strong> — First to load. Checks domain. If unauthorized, redirects to CrazyGames immediately. Nothing else runs.</li>
+<li><strong>crazygames-sdk-v3.js</strong> — External CDN script. May fail to load (CORS); our code handles this gracefully.</li>
+<li><strong>crazygames.js</strong> — Wrapper around SDK. Provides fallback behavior when SDK isn't available (dev mode).</li>
+<li><strong>wager.js</strong> — Coin system. Depends on <code>CG.saveData()</code>/<code>CG.loadData()</code> for persistence.</li>
+<li><strong>game.js</strong> — Pure logic. Zero dependencies on other JS files. Can run in complete isolation.</li>
+<li><strong>multiplayer.js</strong> — Networking. Depends on nothing but the browser's WebSocket/localStorage APIs.</li>
+<li><strong>ui.js</strong> — DOM manipulation. Defines <code>display</code> object with all DOM references at load time.</li>
+<li><strong>main.js</strong> — Last to load. Depends on ALL other modules. Initializes everything and wires event handlers.</li>
+</ul>
+
+<h3>4.3 Screen Flow</h3>
+<pre><code>Loading Screen
+    │
+    ├──[ Single Player ]──► Game Screen ──► Game Over Screen ──► Menu
+    │
+    └──[ Create Room ]──► Lobby (waiting)
+    │                         │
+    │                    [ Join Room ] (guest)
+    │                         │
+    │                    ┌────┴────┐
+    │                    ▼         ▼ (both players see wager screen)
+    │                  Wager Screen
+    │                    │ (bid → lock → reveal)
+    │                    ▼
+    │                  Game Screen
+    │                    │
+    │                    ▼
+    │                 Game Over
+    │                    │
+    │              [Play Again] → Wager Screen (same room)
+    │              [Main Menu]  → Menu Screen</code></pre>
+
+<h3>4.4 WebSocket Message Protocol</h3>
+<p>The client and server communicate via JSON WebSocket messages. Every message has a <code>type</code> field:</p>
+<table>
+<tr><th>Type</th><th>Direction</th><th>Payload</th><th>Description</th></tr>
+<tr><td><code>create_room</code></td><td>C→S</td><td>{name}</td><td>Host creates a new room</td></tr>
+<tr><td><code>room_created</code></td><td>S→C</td><td>{roomId}</td><td>Server confirms room creation</td></tr>
+<tr><td><code>join_room</code></td><td>C→S</td><td>{roomId, name}</td><td>Guest joins an existing room</td></tr>
+<tr><td><code>room_joined</code></td><td>S→C</td><td>{roomId, symbol, hostName, hostBalance}</td><td>Guest receives join confirmation</td></tr>
+<tr><td><code>opponent_joined</code></td><td>S→C</td><td>{name, symbol, balance}</td><td>Host receives opponent join notification</td></tr>
+<tr><td><code>join_failed</code></td><td>S→C</td><td>{reason}</td><td>Join attempt failed</td></tr>
+<tr><td><code>place_bid</code></td><td>C→S</td><td>{roomId, amount}</td><td>Player places a blind bid</td></tr>
+<tr><td><code>bid_locked</code></td><td>S→C</td><td>{}</td><td>Opponent has locked their bid</td></tr>
+<tr><td><code>bid_reveal</code></td><td>S→C</td><td>{yourBid, opponentBid, finalWager, pot, bonus}</td><td>Both bids revealed</td></tr>
+<tr><td><code>bid_veto</code></td><td>C→S / S→C</td><td>{vetoedBy}</td><td>Player vetoes the wager</td></tr>
+<tr><td><code>bid_start</code></td><td>C→S</td><td>{roomId}</td><td>Start the game after veto/bid</td></tr>
+<tr><td><code>move</code></td><td>C→S / S→C</td><td>{roomId, cell, player}</td><td>Player makes a move</td></tr>
+<tr><td><code>rematch_request</code></td><td>C→S</td><td>{roomId}</td><td>Request a rematch</td></tr>
+<tr><td><code>rematch_requested</code></td><td>S→C</td><td>{}</td><td>Opponent wants rematch</td></tr>
+<tr><td><code>rematch_accept</code></td><td>C→S</td><td>{roomId}</td><td>Accept rematch</td></tr>
+<tr><td><code>rematch_accepted</code></td><td>S→C</td><td>{}</td><td>Rematch accepted, reset bids</td></tr>
+<tr><td><code>leave</code></td><td>C→S</td><td>{roomId}</td><td>Player leaves room</td></tr>
+<tr><td><code>opponent_left</code></td><td>S→C</td><td>{}</td><td>Opponent disconnected/left</td></tr>
+<tr><td><code>balance_update</code></td><td>C→S</td><td>{balance}</td><td>Player sends their balance</td></tr>
+<tr><td><code>error</code></td><td>S→C</td><td>{message}</td><td>Server error</td></tr>
+</table>
+
+<!-- ===== SECTION 5 ===== -->
+<h2 id="5-html-layer">5. HTML Layer (index.html)</h2>
+<p>The single HTML file contains all UI screens, modals, and overlays. Every screen is a <code>&lt;div class="screen"&gt;</code> with <code>display:none</code> by default. The <code>.active</code> class toggles visibility via CSS.</p>
+
+<h3>5.1 Screen Structure</h3>
+<table>
+<tr><th>Screen ID</th><th>Purpose</th><th>Key Elements</th></tr>
+<tr><td><code>loading-screen</code></td><td>Initial loading with progress bar</td><td>Spinner, progress bar, loading text, version display</td></tr>
+<tr><td><code>menu-screen</code></td><td>Main menu with 3 buttons</td><td>Play Now, Create Room, Join Room, username display</td></tr>
+<tr><td><code>wager-screen</code></td><td>Blind bid wager interface</td><td>Bid slider, quick bids, lock-in, reveal phase, veto, room code</td></tr>
+<tr><td><code>lobby-screen</code></td><td>Waiting room for players</td><td>Room code, player slots, invite, leave button</td></tr>
+<tr><td><code>game-screen</code></td><td>The Tic-Tac-Toe board</td><td>3×3 grid, player tags, turn indicator, pot display</td></tr>
+<tr><td><code>gameover-screen</code></td><td>Game result screen</td><td>Result emoji, win/lose text, coin change, play again</td></tr>
+</table>
+
+<h3>5.2 Modal Structure</h3>
+<table>
+<tr><th>Modal ID</th><th>Purpose</th><th>Trigger</th></tr>
+<tr><td><code>disconnect-modal</code></td><td>Opponent disconnected</td><td>Server sends <code>opponent_left</code></td></tr>
+<tr><td><code>rematch-request-modal</code></td><td>Rematch request from opponent</td><td>Server sends <code>rematch_requested</code></td></tr>
+<tr><td><code>ad-overlay</code></td><td>Full-screen ad loading</td><td><code>window.onAdStarted()</code></td></tr>
+<tr><td><code>ad-warning-modal</code></td><td>Ad not available</td><td>Ad request fails</td></tr>
+</table>
+
+<h3>5.3 Key Design Decisions</h3>
+<ul>
+<li><strong>Single Page Application:</strong> No page reloads. All navigation is done by toggling CSS classes.</li>
+<li><strong>No inline JavaScript:</strong> All JS is in separate files. HTML is clean markup only.</li>
+<li><strong>Script loading order:</strong> Scripts load at the end of <code>&lt;body&gt;</code> to ensure DOM is ready before JS executes.</li>
+<li><strong>Meta viewport:</strong> <code>user-scalable=no</code> prevents pinch-zoom on mobile for app-like feel.</li>
+</ul>
+
+<!-- ===== SECTION 6 ===== -->
+<h2 id="6-css-layer">6. CSS Layer (style.css)</h2>
+<p>~900 lines of CSS organized into logical sections:</p>
+
+<h3>6.1 CSS Architecture</h3>
+<pre><code>/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --bg: #0f0f1a;              /* Dark background */
+    --bg-card: #1a1a2e;         /* Card background */
+    --bg-hover: #252540;        /* Hover state */
+    --text: #e0e0f0;            /* Primary text */
+    --text-dim: #8888aa;        /* Secondary text */
+    --primary: #6c63ff;         /* Purple accent */
+    --accent: #ff6b6b;          /* Red accent (X) */
+    --secondary: #4ecdc4;       /* Teal accent (O) */
+    --x-color: #ff6b6b;         /* X symbol color */
+    --o-color: #4ecdc4;         /* O symbol color */
+    --win-glow: #ffd700;        /* Gold win glow */
+    --radius: 12px;             /* Border radius */
+    --transition: 0.3s ease;    /* Default transition */
+}</code></pre>
+
+<h3>6.2 CSS Sections (in order)</h3>
+<table>
+<tr><th>Section</th><th>Lines</th><th>Description</th></tr>
+<tr><td>Reset & Base</td><td>1-36</td><td>Box-sizing, CSS variables, body styling</td></tr>
+<tr><td>Screens</td><td>37-55</td><td><code>.screen</code> display none/block toggle, <code>.hidden</code> utility</td></tr>
+<tr><td>Loading Screen</td><td>56-80</td><td>Spinner animation, progress bar, version display</td></tr>
+<tr><td>Menu Screen</td><td>81-100</td><td>Menu buttons, input field, footer</td></tr>
+<tr><td>Buttons</td><td>101-130</td><td>All button variants (primary, accent, secondary, ghost, sizes)</td></tr>
+<tr><td>Join Container</td><td>131-148</td><td>Room code input field, focus state</td></tr>
+<tr><td>Lobby Screen</td><td>149-200</td><td>Room code display, player slots, VS divider, animated dots</td></tr>
+<tr><td>Game Screen</td><td>201-240</td><td>Game header, player tags, turn indicator, pot display</td></tr>
+<tr><td>Board</td><td>241-310</td><td>3×3 grid, cell states (hover, taken, x, o, win, loser, ghost)</td></tr>
+<tr><td>Game Over</td><td>311-330</td><td>Result display, animations</td></tr>
+<tr><td>Connection Status</td><td>331-355</td><td>Fixed position indicator, connected/error states</td></tr><tr><td>Modals</td><td>356-400</td><td>Overlay, content, emoji, buttons</td></tr>
+<tr><td>Ad Overlay</td><td>401-420</td><td>Full-screen ad loading with spinner</td></tr>
+<tr><td>Sound Toggle</td><td>421-435</td><td>Fixed bottom-left sound button</td></tr>
+<tr><td>Coin HUD</td><td>436-460</td><td>Fixed top-left coin balance display</td></tr>
+<tr><td>Coin Win Animation</td><td>461-480</td><td>Flying coin animation on wins</td></tr>
+<tr><td>Wager Screen</td><td>481-540</td><td>Players display, slider, labels, pot display</td></tr>
+<tr><td>Lobby Wager Info</td><td>541-555</td><td>Wager and pot amounts in lobby</td></tr>
+<tr><td>Game Wager Info</td><td>555-565</td><td>Pot display during gameplay</td></tr>
+<tr><td>Game Over Coins</td><td>566-585</td><td>Win/lose/draw coin display</td></tr>
+<tr><td>Responsive</td><td>586-630</td><td>Mobile breakpoints (480px, 360px)</td></tr>
+<tr><td>Wager Room Code</td><td>631-650</td><td>Room code display on wager screen</td></tr>
+<tr><td>Blind Bid</td><td>651-730</td><td>Bid info, quick bid buttons, waiting phase, reveal phase</td></tr>
+<tr><td>Lobby Error</td><td>731-745</td><td>Error display in lobby</td></tr>
+<tr><td>Lobby Waiting</td><td>746-760</td><td>Waiting indicator with animated dots</td></tr>
+</table>
+
+<h3>6.3 Key CSS Techniques</h3>
+<ul>
+<li><strong>CSS Custom Properties (variables):</strong> Used for all colors and spacing. Makes theming easy.</li>
+<li><strong>Ghost hover preview:</strong> CSS <code>::after</code> pseudo-element with <code>attr(data-ghost)</code> shows a faded preview of the player's mark on hover.</li>
+<li><strong>Screen transitions:</strong> Done via <code>display: none/block</code> on <code>.screen.active</code>. No CSS transitions on display (impossible), so <code>fadeIn</code> animation is on child elements.</li>
+<li><strong>Responsive design:</strong> Two breakpoints — 480px (mobile) and 360px (small mobile). Uses <code>clamp()</code> for fluid font sizes.</li>
+<li><strong>Win animation:</strong> <code>@keyframes winPulse</code> with gold glow on winning cells. <code>@keyframes symbolPop</code> for placing marks.</li>
+</ul>
+
+<!-- ===== SECTION 7 ===== -->
+<h2 id="7-js-game">7. Game Logic Module (game.js)</h2>
+<p>This is the <strong>purest module</strong> — zero dependencies on DOM, networking, or any other module. It can be tested in complete isolation. It manages the Tic-Tac-Toe board state.</p>
+
+<h3>7.1 Internal State</h3>
+<pre><code>const WIN_PATTERNS = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],  // rows
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],  // columns
+    [0, 4, 8], [2, 4, 6]               // diagonals
+];
+
+let board = Array(9).fill(null);    // 9 cells, null | 'X' | 'O'
+let currentPlayer = 'X';             // whose turn it is
+let gameOver = false;                // game ended?
+let winner = null;                   // 'X' | 'O' | null
+let winLine = null;                  // array of 3 winning cell indices
+let moveHistory = [];                // [{cell, player}, ...]</code></pre>
+
+<h3>7.2 Public API</h3>
+<table>
+<tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+<tr><td><code>getBoard()</code></td><td>Array(9) copy</td><td>Returns a copy of the board (immutable)</td></tr>
+<tr><td><code>getCurrentPlayer()</code></td><td>'X' | 'O'</td><td>Whose turn it is</td></tr>
+<tr><td><code>isGameOver()</code></td><td>boolean</td><td>Game ended flag</td></tr>
+<tr><td><code>getWinner()</code></td><td>'X'|'O'|null</td><td>Winner or null (draw)</td></tr>
+<tr><td><code>getWinLine()</code></td><td>[3 indices]|null</td><td>Winning cell indices for glow effect</td></tr>
+<tr><td><code>getMoveHistory()</code></td><td>Array copy</td><td>Full move history</td></tr>
+<tr><td><code>makeMove(cellIndex, player)</code></td><td>{success, win, draw, winner, winLine}</td><td>Validates and makes a move with full game logic</td></tr>
+<tr><td><code>applyRemoteMove(cellIndex, player)</code></td><td>{win, draw, switched}</td><td>Applies a move from network (no turn validation)</td></tr>
+<tr><td><code>reset()</code></td><td>void</td><td>Resets all state to initial</td></tr>
+</table>
+
+<h3>7.3 How Win Detection Works</h3>
+<pre><code>function checkWin(player) {
+    for (const pattern of WIN_PATTERNS) {
+        // pattern = [0, 1, 2] (top row), etc.
+        if (pattern.every(idx => board[idx] === player)) {
+            return pattern;  // Return the winning pattern (for glow effect)
+        }
+    }
+    return null;  // No win
+}</code></pre>
+
+<h3>7.4 Move Validation (makeMove)</h3>
+<p>The <code>makeMove</code> function performs strict validation:</p>
+<ol>
+<li>Game must not be over</li>
+<li>Player must be the current player (prevents out-of-turn moves)</li>
+<li>Cell index must be 0-8</li>
+<li>Cell must be empty (not taken)</li>
+<li>After placing: check win → check draw → switch turn</li>
+</ol>
+
+<h3>7.5 applyRemoteMove vs makeMove</h3>
+<p><code>applyRemoteMove</code> is used for network-synced moves. It skips turn validation because the server already validated whose turn it is. Just places the mark and updates state.</p>
+
+<!-- ===== SECTION 8 ===== -->
+<h2 id="8-js-ui">8. UI Module (ui.js)</h2>
+<p>The UI module is responsible for ALL DOM manipulation. No other module touches the DOM directly (except <code>main.js</code> for some game board interactions).</p>
+
+<h3>8.1 Internal Structure</h3>
+<pre><code>const UI = (() => {
+    // ===== Cached DOM References =====
+    const screens = {
+        loading: document.getElementById('loading-screen'),
+        menu: document.getElementById('menu-screen'),
+        wager: document.getElementById('wager-screen'),
+        lobby: document.getElementById('lobby-screen'),
+        game: document.getElementById('game-screen'),
+        gameover: document.getElementById('gameover-screen')
+    };
+
+    const buttons = {
+        single: document.getElementById('btn-single'),
+        create: document.getElementById('btn-create'),
+        join: document.getElementById('btn-join'),
+        // ... ~20 button references
+    };
+
+    const display = {
+        roomCode: document.getElementById('room-code'),
+        hostName: document.getElementById('host-name'),
+        guestName: document.getElementById('guest-name'),
+        wagerSlider: document.getElementById('wager-slider'),
+        wagerAmountDisplay: document.getElementById('wager-amount-display'),
+        // ... ~30 display element references
+    };
+
+    let buttonCallbacks = {};  // Stores registered button click handlers
+    let currentScreenName = 'loading';
+    let ghostPlayer = 'X';
+
+    // ... all functions ...
+
+    return {
+        showScreen, getCurrentScreen,
+        setRoomCode, setPlayerNames,
+        setWagerScreen, setWagerRoomCode, updateWagerDisplay,
+        renderBoard, setGameInfo, setTurnIndicator,
+        // ... ~25 public methods
+    };
+})();</code></pre>
+
+<h3>8.2 Public API (25+ methods)</h3>
+<table>
+<tr><th>Method</th><th>Purpose</th></tr>
+<tr><td><code>showScreen(name)</code></td><td>Activate a screen (hides all others, shows named one)</td></tr>
+<tr><td><code>getCurrentScreen()</code></td><td>Returns current screen name</td></tr>
+<tr><td><code>onButton(id, callback)</code></td><td>Register a click handler for a button</td></tr>
+<tr><td><code>setLoadingText(text)</code></td><td>Update loading screen text</td></tr>
+<tr><td><code>setLoadingProgress(%)</code></td><td>Update progress bar width</td></tr>
+<tr><td><code>setRoomCode(code)</code></td><td>Set room code in lobby and game</td></tr>
+<tr><td><code>setPlayerNames(host, guest)</code></td><td>Set player names in lobby</td></tr>
+<tr><td><code>setWagerScreen(...)</code></td><td>Configure wager screen with all player data</td></tr>
+<tr><td><code>updateWagerDisplay()</code></td><td>Update bid amount/pot from slider value</td></tr>
+<tr><td><code>renderBoard(board, winLine)</code></td><td>Render the 3×3 board with all states</td></tr>
+<tr><td><code>setGameInfo(xName, oName, isMP)</code></td><td>Set player names in game header</td></tr>
+<tr><td><code>setTurnIndicator(current, mySymbol, isMP)</code></td><td>Update turn indicator with active highlight</td></tr>
+<tr><td><code>showGameOverForResult(winner, isMP, mySymbol, coins)</code></td><td>Configure game over screen</td></tr>
+<tr><td><code>updateCoinDisplay(balance)</code></td><td>Update coin HUD</td></tr>
+<tr><td><code>showAdWarning()</code></td><td>Show ad-not-available modal</td></tr>
+<tr><td><code>setConnectionStatus(state)</code></td><td>Update connection indicator</td></tr>
+</table>
+
+<h3>8.3 How Screen Transitions Work</h3>
+<pre><code>function showScreen(name) {
+    // Remove 'active' from ALL screens (hides them via CSS)
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    // Add 'active' to target screen (shows it via CSS)
+    if (screens[name]) screens[name].classList.add('active');
+    currentScreenName = name;
+    // Toggle coin HUD visibility
+    const showHud = ['lobby', 'game', 'wager', 'gameover'].includes(name);
+    display.coinHud.classList.toggle('hidden', !showHud);
+}</code></pre>
+<p>The CSS handles the rest: <code>.screen { display: none; }</code> and <code>.screen.active { display: flex; }</code></p>
+
+<h3>8.4 How Board Rendering Works</h3>
+<pre><code>function renderBoard(board, winLine) {
+    const cells = display.board.querySelectorAll('.cell');
+    const winSet = winLine ? new Set(winLine) : null;
+
+    cells.forEach((cell, i) => {
+        const mark = board[i];
+        cell.textContent = mark || '';
+        cell.className = 'cell';
+
+        if (mark) {
+            cell.classList.add('taken', mark.toLowerCase());
+            if (winSet && winSet.has(i)) cell.classList.add('win');
+            else if (winLine) cell.classList.add('loser');
+        } else {
+            cell.setAttribute('data-ghost', ghostPlayer);
+        }
+    });
+}</code></pre>
+<p>Each cell gets CSS classes: <code>taken</code> (can't click), <code>x</code> or <code>o</code> (for color), <code>win</code> (gold glow), <code>loser</code> (dimmed). Ghost preview uses <code>data-ghost</code> attribute with CSS <code>::after</code>.</p>
+
+<!-- ===== SECTION 9 ===== -->
+<h2 id="9-js-wager">9. Wager System (wager.js)</h2>
+<p>Manages the coin economy and wager logic. Coins are persisted via CrazyGames cloud storage (or localStorage fallback in dev).</p>
+
+<h3>9.1 Constants</h3>
+<pre><code>const STARTING_BALANCE = 500;       // New users get 500 coins
+const COINS_PER_AD = 100;           // Earned per rewarded ad
+const AD_COOLDOWN_MS = 5 * 60 * 1000;  // 5 minute cooldown between ads
+const MIN_WAGER = 10;               // Minimum wager amount
+const WAGER_STEP = 25;              // Slider step size</code></pre>
+
+<h3>9.2 State</h3>
+<pre><code>let balance = 0;            // Current coin balance
+let lastAdTime = 0;         // Timestamp of last ad watch
+let totalWon = 0;           // Lifetime winnings
+let totalLost = 0;          // Lifetime losses
+let gamesPlayed = 0;        // Number of multiplayer games
+let balanceLoaded = false;  // Has balance loaded from storage?</code></pre>
+
+<h3>9.3 Persistence Strategy</h3>
+<ul>
+<li><strong>In production (CrazyGames):</strong> Uses <code>CG.saveData(key, value)</code> / <code>CG.loadData(key)</code> which syncs to CrazyGames cloud storage</li>
+<li><strong>In development (local):</strong> Falls back to <code>localStorage</code> with <code>cg_</code> prefix</li>
+<li><strong>Keys used:</code> <tt>tt_coins</tt>, <tt>tt_last_ad</tt>, <tt>tt_stats</tt></li>
+</ul>
+
+<h3>9.4 Public API</h3>
+<table>
+<tr><th>Method</th><th>Purpose</th></tr>
+<tr><td><code>init()</code></td><td>Load balance/stats from storage, set defaults</td></tr>
+<tr><td><code>getBalance()</code></td><td>Current coin balance</td></tr>
+<tr><td><code>formatCoins(n)</code></td><td>Format: 1500 → "1.5K", 2000000 → "2M"</td></tr>
+<tr><td><code>canWatchAd()</code></td><td>Check if ad cooldown has expired</td></tr>
+<tr><td><code>earnCoinsFromAd()</code></td><td>Show rewarded ad, award 100 coins on completion</td></tr>
+<tr><td><code>deductWager(amount)</code></td><td>Subtract wager from balance at game start</td></tr>
+<tr><td><code>addWinnings(amount)</code></td><td>Add pot winnings to balance</td></tr>
+<tr><td><code>recordLoss(amount)</code><td>Record loss for stats</td></tr>
+<tr><td><code>refundWager(amount)</code></td><td>Return wager on draw</td></tr>
+<tr><td><code>getMinWager()</code></td><td>Returns 10</td></tr>
+<tr><td><code>getWagerStep()</code></td><td>Returns 25</td></tr>
+<tr><td><code>isValidWager(amt, bal)</code></td><td>Validate wager against min/step/max</td></tr>
+</table>
+
+<h3>9.5 Blind Bid Wager Flow (Server-Side)</h3>
+<p>The actual bid resolution happens on the server, not in wager.js. The wager module only manages the coin balance. The server handles:</p>
+<ol>
+<li>Both players send <code>place_bid</code> with their amounts</li>
+<li>Server stores both bids</li>
+<li>When both bids are in, server calculates: <code>finalWager = min(hostBid, guestBid)</code>, <code>pot = finalWager * 2</code>, <code>bonus = (hostBid === guestBid)</code></li>
+<li>Server sends <code>bid_reveal</code> to both players with all bid info</li>
+<li>Players click "Start Game" → server sends <code>bid_start</code> with wager/pot</li>
+<li>Wagers are deducted via <code>Wager.deductWager()</code></li>
+</ol>
+
+<h3>9.6 Veto Mechanism</h3>
+<p>Either player can veto the bid result (before clicking "Start Game"). A veto starts a free game (no wager deducted). The veto is communicated via <code>veto_bid</code> / <code>bid_veto</code> messages. On rematch, the bid state is fully reset.</p>
+
+<!-- ===== SECTION 10 ===== -->
+<h2 id="10-js-multiplayer">10. Multiplayer Module (multiplayer.js)</h2>
+<p>This is the most complex module — it handles room creation, joining, and all WebSocket/localStorage networking with a dual-mode architecture.</p>
+
+<h3>10.1 Dual-Mode Architecture</h3>
+<p>The module operates in two modes:</p>
+<ul>
+<li><strong>WebSocket mode (production):</strong> Connects to the Node.js server for real-time communication between different browsers/machines</li>
+<li><strong>Local mode (dev/fallback):</strong> Uses <code>localStorage</code> events for cross-tab communication on the same browser (no server needed)</li>
+</ul>
+
+<p>Mode selection is automatic:</p>
+<pre><code>function connect() {
+    return new Promise((resolve) => {
+        // Try WebSocket first
+        try { ws = new WebSocket(WS_URL); }  // ws:// + window.location.host
+        catch (e) { startLocalMode(...); return; }
+
+        // 3-second timeout — if WS doesn't connect, fall back to local
+        const timeout = setTimeout(() => {
+            if (!resolved) startLocalMode('timeout');
+        }, WS_TIMEOUT);  // 3000ms
+
+        ws.onopen = () => { useWS = true; done('websocket'); };
+        ws.onerror = () => { startLocalMode('websocket error'); };
+    });
+}</code></pre>
+
+<h3>10.2 Internal State</h3>
+<pre><code>let ws = null;                  // WebSocket connection
+let connected = false;          // Connection state
+let myRoom = null;              // Current room code
+let mySymbol = null;            // 'X' (host) or 'O' (guest)
+let myName = 'Player';          // Player name
+let useWS = false;              // WebSocket mode vs local mode
+const listeners = {};           // Event listeners registry
+
+// Wager state (local mode only)
+let currentWager = 0;
+let hostWagerConfirmed = false;
+let guestWagerConfirmed = false;
+let guestBalance = null;</code></pre>
+
+<h3>10.3 Event System (Pub/Sub)</h3>
+<p>Multiplayer uses its own event system:</p>
+<pre><code>function on(event, callback) {
+    if (!listeners[event]) listeners[event] = [];
+    listeners[event].push(callback);
+}
+
+function emit(event, data) {
+    if (listeners[event]) {
+        listeners[event].forEach(cb => {
+            try { cb(data); } catch (e) { console.error('emit error:', e); }
+        });
+    }
+}</code></pre>
+<p>This allows <code>main.js</code> to listen for events like <code>roomCreated</code>, <code>roomJoined</code>, <code>opponentJoined</code>, <code>bidReveal</code>, etc.</p>
+
+<h3>10.4 All Events</h3>
+<table>
+<tr><th>Event</th><th>Direction</th><th>Data</th><th>When</th></tr>
+<tr><td><code>connectionChange</code></td><td>local</td><td>{state}</td><td>connecting/connected/disconnected</td></tr>
+<tr><td><code>roomCreated</code></td><td>local</td><td>{roomId, symbol}</td><td>Host's room created</td></tr>
+<tr><td><code>roomJoined</code></td><td>local</td><td>{roomId, symbol, hostName, hostBalance}</td><td>Guest joined room</td></tr>
+<tr><td><code>joinFailed</code></td><td>local</td><td>{reason}</td><td>Room join failed</td></tr>
+<tr><td><code>opponentJoined</code></td><td>local</td><td>{name, symbol, balance}</td><td>Opponent joined (host receives)</td></tr>
+<tr><td><code>opponentLeft</code></td><td>local</td><td>{}</td><td>Opponent disconnected or left</td></tr>
+<tr><td><code>opponentBidLocked</code></td><td>local</td><td>{}</td><td>Opponent locked their bid</td></tr>
+<tr><td><code>bidReveal</code></td><td>local</td><td>{yourBid, opponentBid, finalWager, pot, bonus}</td><td>Bids revealed</td></tr>
+<tr><td><code>bidVeto</code></td><td>local</td><td>{vetoedBy}</td><td>Player vetoed</td></tr>
+<tr><td><code>wager_locked</code></td><td>local</td><td>{wager, pot}</td><td>Game can start</td></tr>
+<tr><td><code>move</code></td><td>local</td><td>{cell, player}</td><td>Opponent made a move</td></tr>
+<tr><td><code>rematchRequested</code></td><td>local</td><td>{}</td><td>Opponent wants rematch</td></tr>
+<tr><td><code>rematchAccepted</code></td><td>local</td><td>{}</td><td>Rematch accepted</td></tr>
+<tr><td><code>error</code></td><td>local</td><td>{message}</td><td>Server error</td></tr>
+</table>
+
+<h3>10.5 WebSocket Message Handling</h3>
+<p>Incoming WebSocket messages are routed through <code>handleWSMessage(msg)</code> which maps server message types to local events:</p>
+<pre><code>function handleWSMessage(msg) {
+    switch (msg.type) {
+        case 'room_created':
+            myRoom = msg.roomId;
+            mySymbol = 'X';
+            resetWager();
+            emit('roomCreated', { roomId: msg.roomId, symbol: 'X' });
+            break;
+        case 'room_joined':
+            myRoom = msg.roomId;
+            mySymbol = msg.symbol;
+            resetWager();
+            emit('roomJoined', { roomId: msg.roomId, symbol: msg.symbol,
+                                 hostName: msg.hostName, hostBalance: msg.hostBalance });
+            break;
+        // ... 15+ more cases ...
+    }
+}</code></pre>
+
+<h3>10.6 Local Mode Message Handling</h3>
+<p>In local mode (no WebSocket), messages are passed via <code>localStorage</code> events:</p>
+<pre><code>function localSend(msg) {
+    if (!myRoom) return;
+    msg.sender = myName;
+    msg._ts = Date.now();
+    const key = STORAGE_PREFIX + myRoom + '_' + msg._ts;
+    localStorage.setItem(key, JSON.stringify(msg));
+    setTimeout(() => localStorage.removeItem(key), 5000);  // Auto-cleanup
+}
+
+function handleLocalMessage(msg) {
+    // Only process messages for our room
+    if (msg.roomId !== myRoom) return;
+    switch (msg.type) {
+        case 'join_request':    // Guest → Host
+        case 'join_accept':     // Host → Guest
+        case 'wager_set':       // Host → Guest
+        case 'wager_confirm':   // Guest → Host
+        case 'move':            // Both directions
+        // ... etc
+    }
+}</code></pre>
+
+<h3>10.7 Public API</h3>
+<table>
+<tr><th>Method</th><th>Purpose</th></tr>
+<tr><td><code>connect()</code></td><td>Connect to server (or start local mode)</td></tr>
+<tr><td><code>createRoom(name)</code></td><td>Create a new room (generates 6-char code)</td></tr>
+<tr><td><code>joinRoom(code, name)</code></td><td>Join an existing room</td></tr>
+<tr><td><code>send(obj)</code></td><td>Send arbitrary JSON message</td></tr>
+<tr><td><code>sendMove(cell, player)</code></td><td>Send a move</td></tr>
+<tr><td><code>sendBid(amount)</code></td><td>Place a blind bid</td></tr>
+<tr><td><code>sendVeto()</code></td><td>Veto the wager</td></tr>
+<tr><td><code>sendBidStart()</code></td><td>Start the game after bid</td></tr>
+<tr><td><code>requestRematch()</code></td><td>Request a rematch</td></tr>
+<tr><td><code>acceptRematch()</code></td><td>Accept rematch</td></tr>
+<tr><td><code>leaveRoom()</code></td><td>Leave current room</td></tr>
+<tr><td><code>on(event, cb)</code></td><td>Register event listener</td></tr>
+<tr><td><code>off(event, cb)</code></td><td>Remove event listener</td></tr>
+<tr><td><code>isConnected()</code></td><td>Connection state</td></tr>
+<tr><td><code>getRoom()</code></td><td>Current room code</td></tr>
+<tr><td><code>getSymbol()</code></td><td>'X' or 'O'</td></tr>
+<tr><td><code>getName()</code></td><td>Player name</td></tr>
+</table>
+
+<h3>10.8 Room Code Generation</h3>
+<pre><code>function generateRoomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    // Note: excludes I, O, 0, 1 to avoid confusion
+    let code = '';
+    for (let i = 0; i < 6; i++)
+        code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+}</code></pre>
+
+<!-- ===== SECTION 11 ===== -->
+<h2 id="11-js-crazygames">11. CrazyGames SDK Wrapper (crazygames.js)</h2>
+<p>This module wraps the CrazyGames SDK v3 to provide a clean API for the rest of the code. It also handles the case where the game runs outside CrazyGames (development mode) by falling back to simulated behavior.</p>
+
+<h3>11.1 How CrazyGames SDK Works</h3>
+<p>When the game runs on CrazyGames.com:</p>
+<ol>
+<li> CrazyGames loads the game in an iframe</li>
+<li> Their SDK script (<code>crazygames-sdk-v3.js</code>) is loaded before our code</li>
+<li> <code>window.CrazyGames.SDK</code> becomes available</li>
+<li> We call <code>sdk.init()</code> to initialize</li>
+<li> The SDK provides: user auth, ads, cloud saves, room tracking, invite links, happy time</li>
+</ol>
+
+<h3>11.2 SDK Modules Used</h3>
+<table>
+<tr><th>Module</th><th>Methods Used</th><th>Purpose</th></tr>
+<tr><td><code>sdk.init()</code></td><td>Initialize</td><td>Required before any other SDK calls</td></tr>
+<tr><td><code>sdk.game</code></td><td>loadingStart/Stop, gameplayStart/Stop, happyTime, updateRoom, inviteLink, getInviteParams, addJoinRoomListener, isInstantMultiplayer, leftRoom</td><td>Game lifecycle and multiplayer rooms</td></tr>
+<tr><td><code>sdk.ad</code></td><td>requestAd, hasAdblock</td><td>Ad monetization</td></tr>
+<tr><td><code>sdk.user</code></td><td>getUser, isUserAccountAvailable</td><td>Player identity</td></tr>
+<tr><td><code>sdk.data</code></td><td>setItem, getItem</td><td>Cloud save/load</td></tr>
+</table>
+
+<h3>11.3 Initialization Flow</h3>
+<pre><code>async function init() {
+    try {
+        if (window.CrazyGames && window.CrazyGames.SDK) {
+            sdk = window.CrazyGames.SDK;
+            // 5-second timeout — if SDK init hangs, continue anyway
+            await Promise.race([
+                sdk.init(),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('CG SDK init timeout')), 5000))
+            ]);
+            initialized = true;
+
+            sdk.game.loadingStart();   // Tell CG we're loading
+
+            // Get user info (optional — may fail if not logged in)
+            if (sdk.user.isUserAccountAvailable) {
+                userInfo = await sdk.user.getUser();
+            }
+
+            // Check adblock
+            hasAdblockFlag = await sdk.ad.hasAdblock();
+
+            sdk.game.loadingStop();    // Tell CG loading complete
+        }
+    } catch (e) {
+        console.log('CG SDK init failed (running outside CrazyGames?):', e);
+    }
+    initialized = true;  // Mark ready regardless of SDK
+    return true;
+}</code></pre>
+
+<h3>11.4 Development Fallbacks</h3>
+<p>When NOT running on CrazyGames (e.g., local development or VPS preview):</p>
+<ul>
+<li><strong>Ads:</strong> Simulated — shows console log instead of real ad, resolves after 200ms</li>
+<li><strong>Data save/load:</strong> Uses <code>localStorage</code> with <code>cg_</code> prefix instead of cloud</li>
+<li><strong>User:</code> Returns <code>null</code> username (shows "Guest Player")</li>
+<li><strong>Invite links:</strong> Generated from URL query parameters</li>
+</ul>
+
+<h3>11.5 Ad Lifecycle</h3>
+<pre><code>// When an ad is requested:
+sdk.ad.requestAd('midgame', {
+    adStarted: () => {
+        // Pause game, show overlay
+        window.onAdStarted();
+    },
+    adFinished: () => {
+        // Resume game, hide overlay
+        window.onAdFinished();
+        resolve(true);
+    },
+    adError: () => {
+        // Ad failed, but still resume
+        window.onAdFinished();
+        resolve(false);
+    }
+});</code></pre>
+<p>Our <code>main.js</code> defines <code>window.onAdStarted</code> and <code>window.onAdFinished</code> to handle the ad overlay.</p>
+
+<!-- ===== SECTION 12 ===== -->
+<h2 id="12-js-sitelock">12. Sitelock Module (sitelock.js)</h2>
+<p>A security module that restricts the game to authorized domains. This is required by CrazyGames to prevent unauthorized redistribution.</p>
+
+<h3>12.1 Allowed Domains</h3>
+<pre><code>const ALLOWED_DOMAINS = [
+    'crazygames.com',
+    'www.crazygames.com',
+    'sandbox.crazygames.com',
+    'api.crazygames.com',
+    'sdk.crazygames.com',
+    'player.crazygames.com',
+    'preview.crazygames.com',
+    'localhost',            // Dev
+    '127.0.0.1',           // Dev
+    '145.223.21.59',       // VPS
+];</code></pre>
+
+<h3>12.2 How It Works</h3>
+<pre><code>function enforce() {
+    if (!isAllowedDomain()) {
+        window.location.href = 'https://www.crazygames.com/';
+        return false;  // Block initialization
+    }
+    return true;  // Allow initialization
+}</code></pre>
+<p>Called at the very beginning of <code>init()</code> in <code>main.js</code>. If the domain isn't whitelisted, the user is redirected to CrazyDomains immediately. Nothing else runs.</p>
+
+<!-- ===== SECTION 13 ===== -->
+<h2 id="13-js-main">13. Main Orchestrator (main.js)</h2>
+<p>This is the heart of the application. It initializes all modules, wires all event handlers, and manages the game flow. At ~1000+ lines, it's the largest file.</p>
+
+<h3>13.1 Module-Level State</h3>
+<pre><code>let isMultiplayer = false;       // Current mode
+let mySymbol = null;            // 'X' or 'O'
+let adPaused = false;           // Is an ad playing?
+let audioContext = null;        // Web Audio API context
+let bytebrewReady = false;      // Analytics SDK ready
+let currentWager = 0;           // Current wager amount
+let currentPot = 0;             // Current pot
+let rematchRoom = null;         // Room code for rematch
+let opponentBalance = null;     // Opponent's displayed balance
+let bidLocked = false;          // Has current player locked bid?
+let myBidAmount = 0;            // Current player's bid</code></pre>
+
+<h3>13.2 Initialization Sequence</h3>
+<pre><code>async function init() {
+    // 1. Check domain (sitelock)
+    if (typeof Sitelock !== 'undefined' && !Sitelock.enforce()) return;
+
+    // 2. Setup iOS audio resume
+    setupIOSAudioResume();
+
+    // 3. Start loading screen
+    CG.loadingStart();
+    UI.setLoadingText('Initializing...');
+
+    // 4. Initialize subsystems (parallel where possible)
+    await Wager.init();              // Load coin balance
+    await CG.init();                 // Init CrazyGames SDK
+    await Multiplayer.connect();     // Connect to server
+    setupMultiplayerListeners();     // Register ALL event handlers
+
+    // 5. Check for invite URL parameters
+    const inviteParams = CG.getInviteParams();
+    if (inviteRoomId) → auto-join
+    else if (instantMP) → auto-create room
+    else → show menu
+}</code></pre>
+
+<h3>13.3 Event Handlers Registered</h3>
+<p><code>setupMultiplayerListeners()</code> registers handlers for ALL multiplayer events:</p>
+<table>
+<tr><th>Event</th><th>Handler</th><th>What It Does</th></tr>
+<tr><td><code>connectionChange</code></td><td><code>setConnectionStatus</code></td><td>Updates connection indicator</td></tr>
+<tr><td><code>roomCreated</code></td><td>Room created handler</td><td>Sets room code, sends balance, updates UI</td></tr>
+<tr><td><code>roomJoined</code></td><td>Room joined handler</td><td>Sets room code, sends balance, shows wager</td></tr>
+<tr><td><code>opponentJoined</code></td><td>Opponent joined handler</td><td>Updates names, shows wager screen</td></tr>
+<tr><td><code>opponentLeft</code></td><td>Opponent left handler</td><td>Shows disconnect modal</td></tr>
+<tr><td><code>opponentBidLocked</code></td><td>Bid locked handler</td><td>Shows waiting indicator</td></tr>
+<tr><td><code>bidReveal</code></td><td>Bid reveal handler</td><td>Shows reveal screen with both bids</td></tr>
+<tr><td><code>wager_locked</code></td><td>Game ready handler</td><td>Transitions to game screen</td></tr>
+<tr><td><code>bidVeto</code></td><td>Veto handler</td><td>Handles veto (free game)</td></tr>
+<tr><td><code>move</code></td><td>Move handler</td><td>Applies remote move to board</td></tr>
+<tr><td><code>rematchRequested</code></td><td>Rematch requested</td><td>Shows rematch modal</td></tr>
+<tr><td><code>rematchAccepted</code></td><td>Rematch accepted</td><td>Returns to wager screen</td></tr>
+</table>
+
+<h3>13.4 UI Button Handlers</h3>
+<p><code>setupUIListeners()</code> registers click handlers for all buttons:</p>
+<ul>
+<li><strong>Create Room:</strong> Shows lobby, calls <code>Multiplayer.createRoom()</code></li>
+<li><strong>Join Room:</strong> Shows join input, calls <code>Multiplayer.joinRoom()</code></li>
+<li><strong>Lock In:</strong> Sends <code>place_bid</code> with slider value</li>
+<li><strong>Start Game:</strong> Sends <code>bid_start</code></li>
+<li><strong>Veto:</strong> Sends <code>veto_bid</code></li>
+<li><strong>Play Again:</strong> Sends <code>rematch_request</code></li>
+<li><strong>Rematch Accept:</strong> Sends <code>rematch_accept</code></li>
+<li><strong>Copy Code:</strong> Copies invite link to clipboard</li>
+<li><strong>Get Coins:</strong> Shows rewarded ad</li>
+<li><strong>Back/Leave:</strong> Leaves room, returns to menu</li>
+</ul>
+
+<h3>13.5 Sound System</h3>
+<p>Uses Web Audio API (oscillator-based synthesis) for all sound effects:</p>
+<ul>
+<li><strong>Click:</strong> 600Hz square wave, 80ms</li>
+<li><strong>Win:</strong> Ascending notes (C5→E5→G5), 150ms each</li>
+<li><strong>Lose:</strong> Descending sawtooth, 300→250Hz</li>
+<li><strong>Draw:</strong> Three triangle wave beeps at 440Hz</li>
+<li><strong>Coin:</strong> Quick ascending sine (880→1100Hz)</li>
+</ul>
+<p>All sounds can be muted with the 🔊 button (toggles <code>Sound.muted</code>).</p>
+
+<h3>13.6 Key Functions</h3>
+<table>
+<tr><th>Function</th><th>Purpose</th></tr>
+<tr><td><code>showBlindBidScreen()</code></td><td>Configures and shows the wager screen with all player data, slider setup, and quick bid buttons. Called when both players are in the room.</td></tr>
+<tr><td><code>showBidRevealScreen()</code></td><td>Shows the reveal phase with both players' bids, final wager, pot, and bonus indicator.</td></tr>
+<tr><td><code>startGame(isMP)</code></td><td>Transitions to game screen, sets up board, starts gameplay.</td></tr>
+<tr><td><code>handleMove(cellIndex)</code></td><td>Processes a cell click — validates, applies move, checks win/draw, sends to server.</td></tr>
+<tr><td><code>handleGameEnd(result)</code></td><td>Handles game over — calculates coin changes, shows game over screen, requests ad.</td></tr>
+<tr><td><code>updateGameUI()</code></td><td>Re-renders board and turn indicator.</td></tr>
+</table>
+
+<!-- ===== SECTION 14 ===== -->
+<h2 id="14-server">14. WebSocket Server (server/)</h2>
+
+<h3>14.1 server.js — The Relay Server</h3>
+<p>A Node.js WebSocket server using the <code>ws</code> library. It acts as a relay/matchmaker — it doesn't contain game logic, just routes messages between players in the same room.</p>
+
+<h4>Server Architecture</h4>
+<pre><code>const WebSocket = require('ws');
+const http = require('http');
+
+// Two data structures:
+const rooms = new Map();    // roomId → room data
+const players = new Map();  // playerId → {ws, roomId, name}
+
+// HTTP server serves static files (the game client)
+const server = http.createServer((req, res) => {
+    // Serve index.html, JS, CSS, etc.
+});
+
+// WebSocket server handles real-time communication
+const wss = new WebSocket.Server({ server });</code></pre>
+
+<h4>Room Data Structure</h4>
+<pre><code>{
+    hostId: 'p_abc123',       // Host's player ID
+    hostName: 'Alice',         // Host's display name
+    hostBalance: 1000,         // Host's coin balance
+    guestId: 'p_def456',       // Guest's player ID (null until joined)
+    guestName: 'Bob',          // Guest's display name
+    guestBalance: 500,         // Guest's coin balance
+    createdAt: 1715000000000,   // Timestamp
+    hostBid: undefined,        // Host's blind bid (set via place_bid)
+    guestBid: undefined,       // Guest's blind bid
+    wager: 0,                  // Final wager (min of both bids)
+    wagerLocked: false         // Both bids received?
+}</code></pre>
+
+<h4>Message Routing (handleMessage)</h4>
+<p>The server's <code>handleMessage(playerId, msg)</code> function processes all incoming messages:</p>
+<pre><code>switch (msg.type) {
+    case 'create_room':
+        // Generate room code, store room, send room_created to host
+        break;
+    case 'join_room':
+        // Validate room exists, add guest, send room_joined to guest
+        // Send opponent_joined to host
+        break;
+    case 'place_bid':
+        // Store bid on room, notify opponent (bid_locked)
+        // If both bids in → calculate reveal → send bid_reveal to both
+        break;
+    case 'veto_bid':
+        // Send bid_veto to both players
+        break;
+    case 'bid_start':
+        // If wager locked, send bid_start to both
+        break;
+    case 'move':
+        // Relay to opponent
+        break;
+    case 'rematch_request':
+        // Forward to opponent
+        break;
+    case 'rematch_accept':
+        // Reset bid state, send rematch_accepted to both
+        break;
+    case 'balance_update':
+        // Store balance, forward to opponent
+        break;
+    case 'leave':
+        // Destroy room, notify opponent
+        break;
+}</code></pre>
+
+<h4>Key Server Functions</h4>
+<table>
+<tr><th>Function</th><th>Purpose</th></tr>
+<tr><td><code>generateRoomCode()</code></td><td>Generates unique 6-char alphanumeric code (excludes I,O,0,1)</td></tr>
+<tr><td><code>createRoom(hostId, name)</code></td><td>Creates room, returns room code</td></tr>
+<tr><td><code>joinRoom(roomId, guestId, name)</code></td><td>Adds guest to room, returns success/failure</td></tr>
+<tr><td><code>handlePlayerLeave(playerId)</code></td><td>Destroys room, returns opponent ID for notification</td></tr>
+<tr><td><code>sendTo(ws, type, data)</code></td><td>Sends JSON message to a WebSocket</td></tr>
+<tr><td><code>sendToPlayer(id, type, data)</code></td><td>Looks up player's WS and sends message</td></tr>
+</table>
+
+<h3>14.2 roomManager.js — Pure Room Logic</h3>
+<p>Separated from server.js for testability. Contains all room CRUD operations with zero WebSocket dependencies.</p>
+
+<pre><code>class RoomManager {
+    constructor() {
+        this.rooms = new Map();
+        this.players = new Map();
+        this._now = null;  // Injectable clock for testing
+    }
+
+    createRoom(hostId, hostName) { ... }
+    joinRoom(roomId, guestId, guestName) { ... }
+    handlePlayerLeave(playerId) { ... }
+    isRoomJoinable(room) { ... }
+    cleanup() { ... }  // Remove rooms older than 1 hour
+    addPlayer(id, data) { ... }
+    removePlayer(id) { ... }
+    getPlayer(id) { ... }
+    getRoom(id) { ... }
+    deleteRoom(id) { ... }
+}</code></pre>
+
+<h3>14.3 Bid Resolution Logic (Server-Side)</h3>
+<p>When both bids are received:</p>
+<pre><code>if (room.hostBid !== undefined && room.guestBid !== undefined) {
+    const finalWager = Math.min(room.hostBid, room.guestBid);
+    const pot = finalWager * 2;
+    const bonus = room.hostBid === room.guestBid;
+    room.wager = finalWager;
+    room.wagerLocked = true;
+
+    // Send reveal to host (theirBid = hostBid, opponentBid = guestBid)
+    sendToPlayer(room.hostId, 'bid_reveal', {
+        yourBid: room.hostBid, opponentBid: room.guestBid,
+        finalWager, pot, bonus
+    });
+
+    // Send reveal to guest (theirBid = guestBid, opponentBid = hostBid)
+    sendToPlayer(room.guestId, 'bid_reveal', {
+        yourBid: room.guestBid, opponentBid: room.hostBid,
+        finalWager, pot, bonus
+    });
+}</code></pre>
+
+<!-- ===== SECTION 15 ===== -->
+<h2 id="15-tests">15. Test Suite</h2>
+<p>The project has 58 tests across 2 test files, all running via Jest.</p>
+
+<h3>15.1 Test Files</h3>
+<table>
+<tr><th>File</th><th>Tests</th><th>What It Tests</th></tr>
+<tr><td><code>server/__tests__/e2e.test.js</code></td><td>46</td><td>Full WebSocket message flow (12 flows)</td></tr>
+<tr><td><code>server/__tests__/roomManager.test.js</code></td><td>12</td><td>Room CRUD operations (pure logic)</td></tr>
+</table>
+
+<h3>15.2 Test Infrastructure</h3>
+<p>Each test flow starts a fresh HTTP+WebSocket server on a random port (20000-30000) to avoid conflicts. The test server mirrors the production server.js logic inline (not imported, to keep tests independent).</p>
+
+<h3>15.3 Test Helpers</h3>
+<pre><code>function connect() → WebSocket     // Connect to test server
+function send(ws, type, data)      // Send a message
+function waitForMessage(ws, type)  // Wait for specific message type
+function waitForClose(ws)          // Wait for connection close
+function drainMessages(ws, ms)     // Collect all messages in time window</code></pre>
+
+<h3>15.4 Test Flows (E2E)</h3>
+<table>
+<tr><th>Flow</th><th>Tests</th><th>Description</th></tr>
+<tr><td>FLOW 1</td><td>5</td><td>Room creation and joining</td></tr>
+<tr><td>FLOW 2</td><td>3</td><td>Disconnect destroys room</td></tr>
+<tr><td>FLOW 3</td><td>2</td><td>Explicit leave</td></tr>
+<tr><td>FLOW 4</td><td>2</td><td>Leave and recreate</td></tr>
+<tr><td>FLOW 5</td><td>2</td><td>Multiple concurrent rooms</td></tr>
+<tr><td>FLOW 6</td><td>3</td><td>Move relay</td></tr>
+<tr><td>FLOW 7</td><td>5</td><td>Blind bid wager — normal flow</td></tr>
+<tr><td>FLOW 8</td><td>3</td><td>Veto — free game</td></tr>
+<tr><td>FLOW 9</td><td>2</td><td>Rematch</td></tr>
+<tr><td>FLOW 10</td><td>2</td><td>Veto then rematch — full cycle</td></tr>
+<tr><td>FLOW 11</td><td>5</td><td>Error handling</td></tr>
+<tr><td>FLOW 12</td><td>1</td><td>Full game cycle (create→join→bid→reveal→start→moves→rematch)</td></tr>
+</table>
+
+<h3>15.5 Why Tests Passed Despite Browser Bugs</h3>
+<div class="warning">
+<strong>Important:</strong> The Jest tests only test the <strong>server-side WebSocket message flow</strong> using Node.js WebSocket clients. They do NOT test:
+<ul>
+<li>Browser JavaScript execution</li>
+<li>DOM manipulation</li>
+<li>Event handling in the browser</li>
+<li>CSS rendering</li>
+<li>Third-party SDK integration (CrazyGames, ByteBrew)</li>
+</ul>
+This is why all 58 tests passed while the browser had critical bugs (syntax errors, missing DOM elements, etc.). The server code was always correct — the bugs were in the client-side JavaScript.
+</div>
+
+<!-- ===== SECTION 16 ===== -->
+<h2 id="16-crazygames-publishing">16. CrazyGames Platform Guide</h2>
+
+<h3>16.1 What is CrazyGames?</h3>
+<p><a href="https://www.crazygames.com">CrazyGames.com</a> is one of the world's largest HTML5 gaming platforms, with millions of monthly players. Developers upload HTML5 games and earn revenue through ad monetization. CrazyGames provides:</p>
+<ul>
+<li><strong>SDK v3</strong> — JavaScript SDK for ads, user accounts, cloud saves, multiplayer rooms</li>
+<li><strong>Ad network</strong> — Interstitial ads (between games) and rewarded ads (optional, for in-game rewards)</li>
+<li><strong>Cloud storage</strong> — Save game data per user account</li>
+<li><strong>User system</strong> — Player accounts, usernames, avatars</li>
+<li><strong>Distribution</strong> — Games are embedded on CrazyGames.com and partner sites</li>
+</ul>
+
+<h3>16.2 How to Get Published on CrazyGames</h3>
+<ol>
+<li><strong>Create a developer account</strong> at <a href="https://developer.crazygames.com">developer.crazygames.com</a></li>
+<li><strong>Build your game</strong> following their SDK requirements (see below)</li>
+<li><strong>Upload a ZIP</strong> of your game files (HTML, CSS, JS, assets — no server code)</li>
+<li><strong>Use the Preview tool</strong> to test your game in the CrazyGames iframe environment</li>
+<li><strong>Submit for review</strong> — CrazyGames team reviews for quality, performance, and SDK compliance</li>
+<li><strong>Get approved</strong> — If approved, your game goes live on the platform</li>
+</ol>
+
+<h3>16.3 CrazyGames SDK v3 Requirements (Must-Have)</h3>
+<table>
+<tr><th>Requirement</th><th>Status in Our Game</th><th>Description</th></tr>
+<tr><td><code>sdk.init()</code></td><td>✅ Required</td><td>Must call before any other SDK method</td></tr>
+<tr><td><code>sdk.game.loadingStart()</code></td><td>✅ Required</td><td>Call when loading begins</td></tr>
+<tr><td><code>sdk.game.loadingStop()</code></td><td>✅ Required</td><td>Call when loading completes</td></tr>
+<tr><td><code>sdk.game.gameplayStart()</code></td><td>✅ Required</td><td>Call when gameplay begins</td></tr>
+<tr><td><code>sdk.game.gameplayStop()</code></td><td>✅ Required</td><td>Call when gameplay pauses/ends</td></tr>
+<tr><td><code>sdk.ad.requestAd()</code></td><td>✅ Required</td><td>Show interstitial ads between games</td></tr>
+<tr><td><code>sdk.game.updateRoom()</code></td><td>✅ Recommended</td><td>Report room state for multiplayer matchmaking</td></tr>
+<tr><td><code>sdk.game.inviteLink()</code></td><td>✅ Recommended</td><td>Generate invite links for multiplayer</td></tr>
+<tr><td><code>sdk.game.happytime()</code></td><td>✅ Nice-to-have</td><td>Trigger celebration effect on wins</td></tr>
+<tr><td><code>sdk.user.getUser()</code></td><td>✅ Nice-to-have</td><td>Get logged-in user info</td></tr>
+<tr><td><code>sdk.data.setItem/getItem()</code></td><td>✅ Nice-to-have</td><td>Cloud save/load</td></tr>
+</table>
+
+<h3>16.4 Ad Types</h3>
+<ul>
+<li><strong>Midgame (interstitial):</strong> Full-screen ad shown between games. Required for monetization. Use <code>sdk.ad.requestAd('midgame')</code>.</li>
+<li><strong>Rewarded:</strong> Optional ad that players choose to watch for in-game rewards (coins, extra lives, etc.). Use <code>sdk.ad.requestAd('rewarded')</code>.</li>
+</ul>
+
+<h3>16.5 Tips for CrazyGames Success</h3>
+<ul>
+<li><strong>Keep file size small:</strong> CrazyGames recommends &lt;5MB total. No heavy frameworks.</li>
+<li><strong>Use WebGL or Canvas:</strong> For better performance on mobile devices.</li>
+<li><strong>Mobile-first:</strong> 60%+ of CrazyGames traffic is mobile. Touch controls are essential.</li>
+<li><strong>Short sessions:</strong> Design for 2-5 minute play sessions. Quick restarts.</li>
+<li><strong>High replay value:</strong> Games with random elements, progression, or multiplayer perform best.</li>
+<li><strong>Proper ad frequency:</strong> Show ads between games, not during gameplay. Don't overdo it.</li>
+<li><strong>Test in CrazyGames iframe:</strong> The preview tool simulates the actual embedding environment.</li>
+<li><strong>Handle SDK absence:</strong> Your game should still work (in some capacity) when the SDK isn't available (development, other platforms).</li>
+</ul>
+
+<h3>16.6 Revenue Model</h3>
+<p>CrazyGames pays developers based on <strong>ad impressions</strong> — the number of ads shown to players. Factors that affect revenue:</p>
+<ul>
+<li><strong>Traffic:</strong> More players = more ad views = more revenue</li>
+<li><strong>Session length:</strong> Longer sessions = more ads shown</li>
+<li><strong>Retention:</strong> Players coming back = more total ad views</li>
+<li><strong>Geography:</strong> Players from US/UK/EU generate higher ad revenue</li>
+<li><strong>Ad format:</strong> Rewarded ads typically pay more than interstitials</li>
+</ul>
+
+<h3>16.7 CrazyGames SDK Integration in Our Code</h3>
+<p>Our <code>crazygames.js</code> wraps every SDK call in try-catch blocks so the game works even when the SDK isn't loaded (development mode). The pattern is:</p>
+<pre><code>function someSDKFunction() {
+    if (sdk) {
+        try {
+            return sdk.module.method(args);
+        } catch(e) {
+            console.log('SDK call failed:', e);
+        }
+    }
+    // Fallback behavior when SDK is not available
+    return defaultValue;
+}</code></pre>
+
+<!-- ===== SECTION 17 ===== -->
+<h2 id="17-deployment">17. VPS Deployment</h2>
+
+<h3>17.1 Current Setup</h3>
+<table>
+<tr><th>Service</th><th>URL</th><th>PM2 Name</th><th>Port</th></tr>
+<tr><td>Tic-Tac-Toe Game</td><td>http://145.223.21.59:3002</td><td>tic-tac-toe</td><td>3002</td></tr>
+<tr><td>DeciderAI</td><td>http://145.223.21.59:3001</td><td>deciderai</td><td>3001</td></tr>
+<tr><td>PM2 Dashboard</td><td>http://145.223.21.59:4343</td><td>pm2-webui</td><td>4343</td></tr>
+</table>
+
+<h3>17.2 PM2 Commands</h3>
+<pre><code># List all processes
+pm2 list
+
+# Restart the game server
+pm2 restart tic-tac-toe
+
+# View logs
+pm2 logs tic-tac-toe
+
+# View error logs only
+pm2 logs tic-tac-toe --err
+
+# Monitor resources
+pm2 monit
+
+# Save process list (persists across reboots)
+pm2 save
+
+# Startup script (run after reboot)
+pm2 startup</code></pre>
+
+<h3>17.3 Deployment Workflow</h3>
+<pre><code># 1. Make code changes
+# 2. Test locally (if possible)
+# 3. Commit and push
+cd /root/Desktop/Projects/tic-tac-toe-html5
+git add -A
+git commit -m "vX.X.X: Description of changes"
+git push
+
+# 4. Restart PM2 to load new code
+pm2 restart tic-tac-toe
+
+# 5. Verify
+pm2 logs tic-tac-toe
+# Check version number in bottom-right corner of game</code></pre>
+
+<h3>17.4 Server Architecture</h3>
+<p>The Node.js server serves dual purposes:</p>
+<ol>
+<li><strong>Static file server:</strong> Serves index.html, CSS, JS files to browsers</li>
+<li><strong>WebSocket relay:</strong> Routes messages between players in the same room</li>
+</ol>
+<p>Both run on the same port (3002) using the same HTTP server instance.</p>
+
+<!-- ===== SECTION 18 ===== -->
+<h2 id="18-common-errors">18. Common Errors &amp; Debugging</h2>
+
+<h3>18.1 "Multiplayer.send is not a function"</h3>
+<p><strong>Cause:</strong> The <code>send</code> function in <code>multiplayer.js</code> was not exported in the public API return object.</p>
+<p><strong>Fix:</strong> Added <code>send</code> to the return object: <code>return { connect, on, off, send, ... }</code></p>
+<p><strong>Lesson:</strong> When adding new public methods to a module, always add them to the return object at the bottom of the IIFE.</p>
+
+<h3>18.2 "Cannot set properties of null (setting 'textContent')"</h3>
+<p><strong>Cause:</strong> A DOM element reference stored in the <code>display</code> object at module load time was <code>null</code>. This happens when:
+<ul>
+<li>The browser caches an old version of the JS file</li>
+<li>The element doesn't exist in the HTML</li>
+<li>The script loads before the DOM is ready</li>
+</ul></p>
+<p><strong>Fix:</strong> Added null checks before accessing <code>display.*</code> properties. Added <code>Cache-Control: no-store</code> headers to prevent caching.</p>
+<p><strong>Lesson:</strong> Always add defensive null checks when accessing DOM elements, especially in the wager screen which has many elements.</p>
+
+<h3>18.3 "SyntaxError: Identifier 'username' has already been declared"</h3>
+<p><strong>Cause:</strong> Duplicate <code>const</code> declarations in the same function scope (from a bad edit that duplicated variable declarations).</p>
+<p><strong>Fix:</strong> Removed the duplicate lines.</p>
+<p><strong>Lesson:</strong> Always run <code>node --check js/main.js</code> after editing to catch syntax errors before deploying.</p>
+
+<h3>18.4 Guest stuck on "Waiting for Opponent" screen</h3>
+<p><strong>Cause:</strong> Multiple issues (see above) that prevented the <code>roomJoined</code> handler from completing.</p>
+<p><strong>Debugging steps:</strong></p>
+<ol>
+<li>Check browser console for JavaScript errors</li>
+<li>Check PM2 logs for server-side errors: <code>pm2 logs tic-tac-toe</code></li>
+<li>Verify the version number matches the latest code</li>
+<li>Do a hard refresh (Ctrl+Shift+R) to clear cached JS</li>
+</ol>
+
+<h3>18.5 General Debugging Tips</h3>
+<ul>
+<li><strong>Server logs:</strong> <code>pm2 logs tic-tac-toe</code> shows all console.log output from the server</li>
+<li><strong>Error logs:</strong> <code>pm2 logs tic-tac-toe --err</code> shows only errors</li>
+<li><strong>Browser console:</strong> F12 → Console tab shows all client-side errors</li>
+<li><strong>Network tab:</strong> F12 → Network tab shows WebSocket messages and failed resource loads</li>
+<li><strong>Version check:</strong> The version number in the bottom-right corner confirms which code is deployed</li>
+</ul>
+
+<!-- ===== SECTION 19 ===== -->
+<h2 id="19-changelog">19. Changelog</h2>
+
+<h3>v1.0.0 — Initial Build (May 4)</h3>
+<ul>
+<li>Core Tic-Tac-Toe game logic</li>
+<li>Single player mode</li>
+<li>Multiplayer via WebSocket</li>
+<li>5-screen UI flow</li>
+<li>CrazyGames SDK v3 integration</li>
+<li>WebSocket relay server</li>
+<li>7 bugs fixed</li>
+</ul>
+
+<h3>v1.1.0 — CrazyGames Compliance Overhaul (May 8)</h3>
+<ul>
+<li>Loading lifecycle (loadingStart/Stop)</li>
+<li>Gameplay lifecycle (gameplayStart/Stop)</li>
+<li>Ad overlay with spinner</li>
+<li>Sound effects (Web Audio API)</li>
+<li>Coin HUD</li>
+<li>ByteBrew analytics</li>
+<li>Sitelock domain enforcement</li>
+<li>Disconnect modal</li>
+<li>iOS audio resume</li>
+</ul>
+
+<h3>v1.2.0 — Wager System (May 8)</h3>
+<ul>
+<li>Coin economy (500 starting balance)</li>
+<li>Wager slider (10-500, step 25)</li>
+<li>Host sets wager, guest confirms</li>
+<li>Pot = wager × 2</li>
+<li>Rewarded ads for earning coins</li>
+<li>Coin win animation</li>
+</ul>
+
+<h3>v1.3.0 — Polish & Rematch Modal (May 10)</h3>
+<ul>
+<li>Rematch request modal (accept/reject)</li>
+<li>Version display (bottom-right)</li>
+<li>Sound toggle button</li>
+<li>Connection status indicator</li>
+<li>CSS polish (animations, responsive, layout fixes)</li>
+</ul>
+
+<h3>v1.3.1 — Rematch Room Reuse Fix (May 10)</h3>
+<ul>
+<li>Fixed rematch creating new room instead of reusing existing one</li>
+<li>Fixed WebSocket port mismatch</li>
+</ul>
+
+<h3>v1.3.2 — WS Port Fix & Debug Logging (May 10)</h3>
+<ul>
+<li>WebSocket URL now uses <code>window.location.host</code> (auto-detects port)</li>
+<li>Added global error handlers</li>
+<li>Added flow debug logging</li>
+</ul>
+
+<h3>v1.4.0 — Blind Bid Wager System (May 10)</h3>
+<ul>
+<li>Replaced host-only wager with poker-style blind bidding</li>
+<li>Both players bid secretly</li>
+<li>Lower bid wins</li>
+<li>Quick bid presets (10, 50, 100, 200, ALL IN)</li>
+<li>Dramatic reveal with VS display</li>
+<li>Confidence bonus (equal bids → +10% pot)</li>
+<li>Veto power (either player can veto for free game)</li>
+<li>Server-side bid handling (place_bid, veto_bid, bid_start)</li>
+<li>58 comprehensive Jest tests</li>
+</ul>
+
+<h3>v1.4.1 — UI Improvements (May 11)</h3>
+<ul>
+<li>Renamed "Play Now" to "Local Player vs Player"</li>
+<li>Create Room and Join Room buttons side-by-side (half-width)</li>
+<li>Version display always visible (fixed bottom-right, z-index 9999)</li>
+<li>Opponent balance tracking for wager screen</li>
+<li>Ad-not-available modal (modern, rounded, semi-transparent)</li>
+<li>Player symbol indicators (X/O) in lobby</li>
+</ul>
+
+<h3>v1.4.2 — Multiplayer Connection Fix (May 11)</h3>
+<ul>
+<li><strong>Critical fix:</strong> Added <code>send</code> to Multiplayer public API (was missing, causing <code>TypeError: Multiplayer.send is not a function</code>)</li>
+<li><strong>Critical fix:</strong> Removed duplicate <code>const</code> declarations in <code>showBlindBidScreen()</code> (was causing entire main.js to fail parsing)</li>
+<li>Fixed <code>currentPT</code> typo → <code>currentPot</code></li>
+<li>Added <code>hostBalance</code> to <code>room_joined</code> emit in multiplayer.js</li>
+<li>Added <code>Cache-Control: no-store</code> headers to server</li>
+<li>Added balance_update message handling on server</li>
+</ul>
+
+<h3>v1.4.3 — Wager Slider Fix (May 11)</h3>
+<ul>
+<li>Fixed <code>Cannot set properties of null</code> error in <code>updateWagerDisplay()</code> — added null checks for <code>wagerAmountDisplay</code> and <code>wagerPotAmount</code></li>
+<li>Added null checks in <code>setWagerScreen()</code> for all wager DOM elements</li>
+<li>These errors occurred when browser cached old JS files or DOM wasn't ready</li>
+</ul>
+
+<hr>
+<p><em>This documentation was auto-generated for v1.4.3 on 2026-05-11. For the latest version, check the GitHub repository.</em></p>
+</body>
+</html>
