@@ -30,7 +30,9 @@ const UI = (() => {
         backToMenu: document.getElementById('btn-back-to-menu'),
         rematch: document.getElementById('btn-rematch'),
         backMenu: document.getElementById('btn-back-menu'),
-        wagerConfirm: document.getElementById('btn-wager-confirm'),
+        wagerLockin: document.getElementById('btn-wager-lockin'),
+        wagerStart: document.getElementById('btn-wager-start'),
+        wagerVeto: document.getElementById('btn-wager-veto'),
         wagerCoins: document.getElementById('btn-wager-coins'),
         wagerBack: document.getElementById('btn-wager-back'),
         lobbyErrorOk: document.getElementById('btn-lobby-error-ok')

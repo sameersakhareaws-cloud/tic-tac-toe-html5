@@ -11,7 +11,7 @@
  */
 (function() {
     // ===== Version =====
-    const VERSION = 'v1.4.0';
+    const VERSION = 'v1.4.1';
     const versionEl = document.getElementById('version-display');
     if (versionEl) versionEl.textContent = VERSION;
 
@@ -697,10 +697,9 @@
             const hostName = data.hostName || 'Host';
             UI.setPlayerNames(hostName, data.symbol === 'O' ? username : 'Waiting...');
             CG.updateRoom({ roomId: data.roomId, isJoinable: false });
-            // Guest: hide pre-join lobby UI (room code, invite) since we're already in the room
-            if (data.symbol === 'O') {
-                UI.setLobbyJoinedState(true);
-            }
+            UI.setLobbyJoinedState(true);
+            // Guest: show blind bid screen immediately (both players need to bid)
+            showBlindBidScreen();
         });
 
         Multiplayer.on('joinFailed', (data) => {
