@@ -605,6 +605,9 @@
         myBidAmount = Math.min(50, balance);
         bidLocked = false;
 
+        // Reset reveal phase DOM (in case previous round was a veto)
+        resetRevealPhaseDOM();
+
         // Update player info — use actual opponent name from lobby if available
         document.getElementById('wager-host-name').textContent = username;
         document.getElementById('wager-host-balance').textContent = `💰 ${Wager.formatCoins(balance)}`;
@@ -651,7 +654,20 @@
         document.getElementById('wager-reveal-phase').classList.add('hidden');
     }
 
+    function resetRevealPhaseDOM() {
+        // Restore reveal phase to default state (undo any veto modifications)
+        document.getElementById('wager-reveal-resolution').innerHTML =
+            '<p>Resolution: <strong>Lower bid wins</strong></p>' +
+            '<p>Final Wager: <span id="wager-reveal-final" class="wager-reveal-final-amount">--</span> 💰</p>' +
+            '<p>Pot: <span id="wager-reveal-pot" class="wager-reveal-pot-amount">--</span> 💰</p>';
+        document.getElementById('btn-wager-start').textContent = '🎮 Start Game';
+        document.getElementById('btn-wager-veto').classList.remove('hidden');
+    }
+
     function showBidRevealScreen(yourBid, opponentBid, finalWager, pot, bonus) {
+        // Always start from clean state
+        resetRevealPhaseDOM();
+
         document.getElementById('wager-bid-phase').classList.add('hidden');
         document.getElementById('wager-waiting-phase').classList.add('hidden');
         document.getElementById('wager-reveal-phase').classList.remove('hidden');
