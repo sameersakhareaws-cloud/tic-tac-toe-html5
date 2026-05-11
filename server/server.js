@@ -51,8 +51,7 @@ function createRoom(hostId, hostName) {
 
 function joinRoom(roomId, guestId, guestName) {
     const room = rooms.get(roomId);
-    if (!room) return { success: false, reason: 'Room not found' };
-    if (!isRoomJoinable(room)) return { success: false, reason: 'Room not found' };
+    if (!room || !room.hostId) return { success: false, reason: 'Room not found' };
     if (room.guestId) return { success: false, reason: 'Room is full' };
     if (room.hostId === guestId) return { success: false, reason: 'Cannot join your own room' };
 

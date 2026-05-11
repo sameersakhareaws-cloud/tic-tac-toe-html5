@@ -3,8 +3,6 @@
  * Testable in isolation.
  */
 
-const HOST_RECONNECT_GRACE_MS = 30000;
-
 class RoomManager {
     constructor() {
         this.rooms = new Map();
@@ -36,34 +34,26 @@ class RoomManager {
             guestName: null,
             guestId: null,
             createdAt: this.now(),
-            hostDisconnectedAt: null,
+            hostBid: undefined,
+            guestBid: undefined,
             wager: 0,
-            wagerHostConfirmed: false,
-            wagerGuestConfirmed: false,
             wagerLocked: false
         });
         return roomId;
     }
 
     isRoomJoinable(room) {
-        if (!room.hostId && room.hostDisconnectedAt) {
-            return (this.now() - room.hostDisconnectedAt) < HOST_RECONNECT_GRACE_MS;
-        }
-        return !!room.hostId;
+        return !!room.hostId && !room.guestId;
     }
 
     joinRoom(roomId, guestId, guestName) {
         const room = this.rooms.get(roomId);
-        if (!room) return { success: false, reason: 'Room not found' };
-        if (!this.isRoomJoinable(room)) return { success: false, reason: 'Room not found' };
+        if (!room || !room.hostId) return { success: false, reason: 'Room not found' };
         if (room.guestId) return { success: false, reason: 'Room is full' };
         if (room.hostId === guestId) return { success: false, reason: 'Cannot join your own room' };
 
         room.guestName = guestName || 'Guest';
         room.guestId = guestId;
-        if (!room.hostId && room.hostDisconnectedAt) {
-            room.hostDisconnectedAt = null;
-        }
         return { success: true, room };
     }
 
@@ -75,18 +65,8 @@ class RoomManager {
         const room = this.rooms.get(roomId);
         if (!room) return null;
 
-        let opponentId = null;
-
-        if (room.hostId === playerId) {
-            opponentId = room.guestId;
-            room.hostDisconnectedAt = this.now();
-            room.hostId = null;
-        } else if (room.guestId === playerId) {
-            opponentId = room.hostId;
-            room.guestName = null;
-            room.guestId = null;
-        }
-
+        const opponentId = (room.hostId === playerId) ? room.guestId : room.hostId;
+        this.rooms.delete(roomId);
         player.roomId = null;
         return opponentId;
     }
@@ -122,11 +102,6 @@ class RoomManager {
     cleanup() {
         const now = this.now();
         for (const [id, room] of this.rooms) {
-            if (!room.hostId && room.hostDisconnectedAt &&
-                now - room.hostDisconnectedAt > HOST_RECONNECT_GRACE_MS) {
-                this.rooms.delete(id);
-                continue;
-            }
             if (now - room.createdAt > 3600000) {
                 this.rooms.delete(id);
             }
@@ -134,4 +109,4 @@ class RoomManager {
     }
 }
 
-module.exports = { RoomManager, HOST_RECONNECT_GRACE_MS };
+module.exports = { RoomManager };

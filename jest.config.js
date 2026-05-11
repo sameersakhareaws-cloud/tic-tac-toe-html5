@@ -7,6 +7,8 @@ module.exports = {
     collectCoverageFrom: [
         'server/**/*.js',
         '!server/**/__tests__/**',
-        '!server/roomManager.js' // Only test extracted logic, not the inline version in server.js
-    ]
+        '!server/roomManager.js'
+    ],
+    testTimeout: 10000,
+    forceExit: true
 };

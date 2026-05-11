@@ -321,6 +321,7 @@
             currentWager = 0;
             currentPot = 0;
             UI.clearLobbyWager();
+            UI.setLobbyJoinedState(false);
             UI.showScreen('menu');
         });
 
@@ -339,6 +340,7 @@
             TicTacToe.reset();
             UI.clearBoard();
             UI.hideDisconnectModal();
+            UI.setLobbyJoinedState(false);
             UI.showScreen('menu');
         });
 
@@ -692,6 +694,7 @@
             rematchRoom = data.roomId; // Track room for potential rematch
             const username = CG.getUsername() || 'Player';
             UI.setPlayerNames(username, 'Waiting...');
+            UI.setLobbyJoinedState(false); // Reset lobby to pre-join state (show room code, invite btn)
             CG.updateRoom({
                 roomId: data.roomId,
                 isJoinable: true,

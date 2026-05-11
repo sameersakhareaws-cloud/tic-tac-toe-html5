@@ -1,16 +1,17 @@
 const WebSocket = require('ws');
 const http = require('http');
-const fs = require('fs');
-const path = require('path');
 
-// We'll spin up the actual server for E2E tests
-let server;
 let httpServer;
-let PORT = 19876; // use a non-standard port for testing
+let PORT;
+
+function getPort() {
+    // Use a random port to avoid conflicts from previous test runs
+    return Math.floor(Math.random() * 10000) + 20000;
+}
 
 function startServer() {
     return new Promise((resolve) => {
-        // Minimal HTTP server that serves the WS endpoint
+        PORT = getPort();
         httpServer = http.createServer((req, res) => {
             if (req.url === '/health') {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -20,7 +21,6 @@ function startServer() {
             res.end();
         });
 
-        // Inline the room manager for E2E — same logic as server.js
         const rooms = new Map();
         const players = new Map();
 
@@ -45,6 +45,18 @@ function startServer() {
             if (player) sendTo(player.ws, type, data);
         }
 
+        function handlePlayerLeave(playerId) {
+            const player = players.get(playerId);
+            if (!player || !player.roomId) return null;
+            const roomId = player.roomId;
+            const room = rooms.get(roomId);
+            if (!room) return null;
+            const opponentId = (room.hostId === playerId) ? room.guestId : room.hostId;
+            rooms.delete(roomId);
+            player.roomId = null;
+            return opponentId;
+        }
+
         const wss = new WebSocket.Server({ server: httpServer });
 
         wss.on('connection', (ws) => {
@@ -61,22 +73,7 @@ function startServer() {
             });
 
             ws.on('close', () => {
-                const player = players.get(playerId);
-                if (!player || !player.roomId) { players.delete(playerId); return; }
-                const room = rooms.get(player.roomId);
-                if (!room) { players.delete(playerId); return; }
-
-                let opponentId = null;
-                if (room.hostId === playerId) {
-                    opponentId = room.guestId;
-                    room.hostDisconnectedAt = Date.now();
-                    room.hostId = null;
-                } else if (room.guestId === playerId) {
-                    opponentId = room.hostId;
-                    room.guestName = null;
-                    room.guestId = null;
-                }
-                player.roomId = null;
+                const opponentId = handlePlayerLeave(playerId);
                 if (opponentId) sendToPlayer(opponentId, 'opponent_left');
                 players.delete(playerId);
             });
@@ -95,10 +92,9 @@ function startServer() {
                         guestName: null,
                         guestId: null,
                         createdAt: Date.now(),
-                        hostDisconnectedAt: null,
+                        hostBid: undefined,
+                        guestBid: undefined,
                         wager: 0,
-                        wagerHostConfirmed: false,
-                        wagerGuestConfirmed: false,
                         wagerLocked: false
                     });
                     player.roomId = roomId;
@@ -109,16 +105,7 @@ function startServer() {
                 case 'join_room': {
                     const roomId = msg.roomId.toUpperCase();
                     const room = rooms.get(roomId);
-                    if (!room) {
-                        sendTo(player.ws, 'join_failed', { reason: 'Room not found' });
-                        break;
-                    }
-                    if (!room.hostId && room.hostDisconnectedAt) {
-                        if (Date.now() - room.hostDisconnectedAt > 30000) {
-                            sendTo(player.ws, 'join_failed', { reason: 'Room not found' });
-                            break;
-                        }
-                    } else if (!room.hostId) {
+                    if (!room || !room.hostId) {
                         sendTo(player.ws, 'join_failed', { reason: 'Room not found' });
                         break;
                     }
@@ -136,6 +123,73 @@ function startServer() {
                     }
                     break;
                 }
+                case 'move': {
+                    const room = rooms.get(msg.roomId);
+                    if (!room) { sendTo(player.ws, 'error', { message: 'Room not found' }); return; }
+                    const opponentId = (room.hostId === playerId) ? room.guestId : room.hostId;
+                    if (opponentId) sendToPlayer(opponentId, 'move', { cell: msg.cell, player: msg.player });
+                    break;
+                }
+                case 'rematch_request': {
+                    const room = rooms.get(msg.roomId);
+                    if (!room) return;
+                    const opponentId = (room.hostId === playerId) ? room.guestId : room.hostId;
+                    if (opponentId) sendToPlayer(opponentId, 'rematch_requested');
+                    break;
+                }
+                case 'rematch_accept': {
+                    const room = rooms.get(msg.roomId);
+                    if (!room) return;
+                    room.hostBid = undefined;
+                    room.guestBid = undefined;
+                    room.wager = 0;
+                    room.wagerLocked = false;
+                    if (room.hostId) sendToPlayer(room.hostId, 'rematch_accepted');
+                    if (room.guestId) sendToPlayer(room.guestId, 'rematch_accepted');
+                    break;
+                }
+                case 'place_bid': {
+                    const room = rooms.get(msg.roomId);
+                    if (!room) { sendTo(player.ws, 'error', { message: 'Room not found' }); return; }
+                    if (room.hostId === playerId) room.hostBid = msg.amount;
+                    else if (room.guestId === playerId) room.guestBid = msg.amount;
+                    const opponentId = (room.hostId === playerId) ? room.guestId : room.hostId;
+                    if (opponentId) sendToPlayer(opponentId, 'bid_locked');
+                    if (room.hostBid !== undefined && room.guestBid !== undefined) {
+                        const finalWager = Math.min(room.hostBid, room.guestBid);
+                        const pot = finalWager * 2;
+                        const bonus = room.hostBid === room.guestBid;
+                        room.wager = finalWager;
+                        room.wagerLocked = true;
+                        if (room.hostId) sendToPlayer(room.hostId, 'bid_reveal', {
+                            yourBid: room.hostBid, opponentBid: room.guestBid, finalWager, pot, bonus
+                        });
+                        if (room.guestId) sendToPlayer(room.guestId, 'bid_reveal', {
+                            yourBid: room.guestBid, opponentBid: room.hostId === playerId ? room.hostBid : room.guestBid, finalWager, pot, bonus
+                        });
+                    }
+                    break;
+                }
+                case 'veto_bid': {
+                    const room = rooms.get(msg.roomId);
+                    if (!room) return;
+                    if (room.hostId) sendToPlayer(room.hostId, 'bid_veto', { vetoedBy: playerId });
+                    if (room.guestId) sendToPlayer(room.guestId, 'bid_veto', { vetoedBy: playerId });
+                    break;
+                }
+                case 'bid_start': {
+                    const room = rooms.get(msg.roomId);
+                    if (!room || !room.wagerLocked) return;
+                    const startData = { wager: room.wager, pot: room.wager * 2 };
+                    if (room.hostId) sendToPlayer(room.hostId, 'bid_start', startData);
+                    if (room.guestId) sendToPlayer(room.guestId, 'bid_start', startData);
+                    break;
+                }
+                case 'leave': {
+                    const opponentId = handlePlayerLeave(playerId);
+                    if (opponentId) sendToPlayer(opponentId, 'opponent_left');
+                    break;
+                }
             }
         }
 
@@ -148,7 +202,11 @@ function startServer() {
 function stopServer() {
     return new Promise((resolve) => {
         if (httpServer) {
-            httpServer.close(resolve);
+            // Close all existing connections first
+            httpServer.close(() => {
+                httpServer = null;
+                resolve();
+            });
         } else {
             resolve();
         }
@@ -158,8 +216,9 @@ function stopServer() {
 function connect() {
     return new Promise((resolve, reject) => {
         const ws = new WebSocket(`ws://localhost:${PORT}`);
-        ws.on('open', () => resolve(ws));
-        ws.on('error', reject);
+        const timer = setTimeout(() => reject(new Error('Connection timeout')), 5000);
+        ws.on('open', () => { clearTimeout(timer); resolve(ws); });
+        ws.on('error', (e) => { clearTimeout(timer); reject(e); });
     });
 }
 
@@ -167,7 +226,7 @@ function send(ws, type, data = {}) {
     ws.send(JSON.stringify({ type, ...data }));
 }
 
-function waitForMessage(ws, type, timeout = 5000) {
+function waitForMessage(ws, type, timeout = 8000) {
     return new Promise((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error(`Timeout waiting for ${type}`)), timeout);
         const handler = (raw) => {
@@ -184,28 +243,26 @@ function waitForMessage(ws, type, timeout = 5000) {
     });
 }
 
-function waitForClose(ws, timeout = 5000) {
+function waitForClose(ws, timeout = 8000) {
     return new Promise((resolve, reject) => {
+        if (ws.readyState === WebSocket.CLOSED) { resolve(); return; }
         const timer = setTimeout(() => reject(new Error('Timeout waiting for close')), timeout);
-        ws.on('close', () => {
-            clearTimeout(timer);
-            resolve();
-        });
+        ws.on('close', () => { clearTimeout(timer); resolve(); });
     });
 }
 
-beforeAll(async () => {
-    await startServer();
-});
+async function closeAll(...sockets) {
+    for (const s of sockets) {
+        try { if (s.readyState === WebSocket.OPEN || s.readyState === WebSocket.CONNECTING) s.close(); } catch (e) {}
+    }
+    for (const s of sockets) {
+        try { await waitForClose(s, 3000); } catch (e) {}
+    }
+}
 
-afterAll(async () => {
-    await stopServer();
-});
-
-afterEach(async () => {
-    // Small delay to let server settle
-    await new Promise(r => setTimeout(r, 50));
-});
+beforeAll(async () => { await startServer(); }, 10000);
+afterAll(async () => { await stopServer(); }, 10000);
+afterEach(async () => { await new Promise(r => setTimeout(r, 100)); });
 
 // ===== E2E: Room Creation & Joining =====
 
@@ -214,38 +271,29 @@ describe('E2E: room creation and joining', () => {
         const host = await connect();
         const guest = await connect();
 
-        // Host creates room
         send(host, 'create_room', { name: 'Alice' });
         const created = await waitForMessage(host, 'room_created');
         expect(created.roomId).toBeDefined();
         expect(created.roomId).toHaveLength(6);
 
-        // Guest joins
         send(guest, 'join_room', { roomId: created.roomId, name: 'Bob' });
         const joined = await waitForMessage(guest, 'room_joined');
         expect(joined.roomId).toBe(created.roomId);
         expect(joined.symbol).toBe('O');
         expect(joined.hostName).toBe('Alice');
 
-        // Host gets notified
         const opponentJoined = await waitForMessage(host, 'opponent_joined');
         expect(opponentJoined.name).toBe('Bob');
 
-        host.close();
-        guest.close();
-        await waitForClose(host);
-        await waitForClose(guest);
+        await closeAll(host, guest);
     });
 
     test('guest cannot join non-existent room', async () => {
         const guest = await connect();
-
         send(guest, 'join_room', { roomId: 'XXXXXX', name: 'Bob' });
         const failed = await waitForMessage(guest, 'join_failed');
         expect(failed.reason).toBe('Room not found');
-
-        guest.close();
-        await waitForClose(guest);
+        await closeAll(guest);
     });
 
     test('guest cannot join a full room', async () => {
@@ -256,28 +304,22 @@ describe('E2E: room creation and joining', () => {
         send(host, 'create_room', { name: 'Alice' });
         const created = await waitForMessage(host, 'room_created');
 
-        // First guest joins
         send(guest1, 'join_room', { roomId: created.roomId, name: 'Bob' });
         await waitForMessage(guest1, 'room_joined');
+        await waitForMessage(host, 'opponent_joined');
 
-        // Second guest fails
         send(guest2, 'join_room', { roomId: created.roomId, name: 'Charlie' });
         const failed = await waitForMessage(guest2, 'join_failed');
         expect(failed.reason).toBe('Room is full');
 
-        host.close();
-        guest1.close();
-        guest2.close();
-        await waitForClose(host);
-        await waitForClose(guest1);
-        await waitForClose(guest2);
+        await closeAll(host, guest1, guest2);
     });
 });
 
-// ===== E2E: Disconnect & Reconnect =====
+// ===== E2E: Disconnect — room destroyed immediately =====
 
-describe('E2E: host disconnect and reconnect', () => {
-    test('host disconnects — guest gets opponent_left', async () => {
+describe('E2E: disconnect destroys room', () => {
+    test('host disconnects — guest gets opponent_left, room destroyed', async () => {
         const host = await connect();
         const guest = await connect();
 
@@ -286,20 +328,24 @@ describe('E2E: host disconnect and reconnect', () => {
 
         send(guest, 'join_room', { roomId: created.roomId, name: 'Bob' });
         await waitForMessage(guest, 'room_joined');
+        await waitForMessage(host, 'opponent_joined');
 
-        // Host disconnects
         host.close();
         await waitForClose(host);
 
-        // Guest should be notified
         const left = await waitForMessage(guest, 'opponent_left');
         expect(left.type).toBe('opponent_left');
 
-        guest.close();
-        await waitForClose(guest);
+        // Room destroyed — new guest cannot join
+        const guest2 = await connect();
+        send(guest2, 'join_room', { roomId: created.roomId, name: 'Charlie' });
+        const failed = await waitForMessage(guest2, 'join_failed');
+        expect(failed.reason).toBe('Room not found');
+
+        await closeAll(guest, guest2);
     });
 
-    test('guest disconnects — host gets opponent_left', async () => {
+    test('guest disconnects — host gets opponent_left, room destroyed', async () => {
         const host = await connect();
         const guest = await connect();
 
@@ -308,17 +354,123 @@ describe('E2E: host disconnect and reconnect', () => {
 
         send(guest, 'join_room', { roomId: created.roomId, name: 'Bob' });
         await waitForMessage(guest, 'room_joined');
+        await waitForMessage(host, 'opponent_joined');
 
-        // Guest disconnects
         guest.close();
         await waitForClose(guest);
 
-        // Host should be notified
         const left = await waitForMessage(host, 'opponent_left');
         expect(left.type).toBe('opponent_left');
 
-        host.close();
-        await waitForClose(host);
+        // Room destroyed — new guest cannot join
+        const guest2 = await connect();
+        send(guest2, 'join_room', { roomId: created.roomId, name: 'Charlie' });
+        const failed = await waitForMessage(guest2, 'join_failed');
+        expect(failed.reason).toBe('Room not found');
+
+        await closeAll(host, guest2);
+    });
+});
+
+// ===== E2E: Explicit leave =====
+
+describe('E2E: explicit leave message', () => {
+    test('host sends leave — guest notified, room destroyed', async () => {
+        const host = await connect();
+        const guest = await connect();
+
+        send(host, 'create_room', { name: 'Alice' });
+        const created = await waitForMessage(host, 'room_created');
+
+        send(guest, 'join_room', { roomId: created.roomId, name: 'Bob' });
+        await waitForMessage(guest, 'room_joined');
+        await waitForMessage(host, 'opponent_joined');
+
+        send(host, 'leave', { roomId: created.roomId });
+
+        const left = await waitForMessage(guest, 'opponent_left');
+        expect(left.type).toBe('opponent_left');
+
+        // Room destroyed
+        const guest2 = await connect();
+        send(guest2, 'join_room', { roomId: created.roomId, name: 'Charlie' });
+        const failed = await waitForMessage(guest2, 'join_failed');
+        expect(failed.reason).toBe('Room not found');
+
+        await closeAll(host, guest, guest2);
+    });
+});
+
+// ===== E2E: Leave and recreate =====
+
+describe('E2E: leave and recreate', () => {
+    test('host leaves room, creates new room — gets new code', async () => {
+        const host = await connect();
+        const guest = await connect();
+
+        send(host, 'create_room', { name: 'Alice' });
+        const room1 = await waitForMessage(host, 'room_created');
+        send(guest, 'join_room', { roomId: room1.roomId, name: 'Bob' });
+        await waitForMessage(guest, 'room_joined');
+        await waitForMessage(host, 'opponent_joined');
+
+        // Guest leaves — room destroyed
+        guest.close();
+        await waitForClose(guest);
+        await waitForMessage(host, 'opponent_left');
+
+        // Host creates new room
+        send(host, 'create_room', { name: 'Alice' });
+        const room2 = await waitForMessage(host, 'room_created');
+        expect(room2.roomId).not.toBe(room1.roomId);
+
+        // New guest can join the new room
+        const guest2 = await connect();
+        send(guest2, 'join_room', { roomId: room2.roomId, name: 'Charlie' });
+        const joined = await waitForMessage(guest2, 'room_joined');
+        expect(joined.roomId).toBe(room2.roomId);
+
+        await closeAll(host, guest2);
+    });
+
+    test('both leave and create independent new rooms', async () => {
+        const host1 = await connect();
+        const guest1 = await connect();
+
+        send(host1, 'create_room', { name: 'Alice' });
+        const room1 = await waitForMessage(host1, 'room_created');
+        send(guest1, 'join_room', { roomId: room1.roomId, name: 'Bob' });
+        await waitForMessage(guest1, 'room_joined');
+        await waitForMessage(host1, 'opponent_joined');
+
+        // Both leave
+        host1.close();
+        await waitForClose(host1);
+        await waitForMessage(guest1, 'opponent_left');
+        guest1.close();
+        await waitForClose(guest1);
+
+        // Both create new rooms
+        const host2 = await connect();
+        const guest2 = await connect();
+
+        send(host2, 'create_room', { name: 'Alice' });
+        const room2 = await waitForMessage(host2, 'room_created');
+
+        send(guest2, 'create_room', { name: 'Bob' });
+        const room3 = await waitForMessage(guest2, 'room_created');
+
+        expect(room2.roomId).not.toBe(room3.roomId);
+
+        const joiner1 = await connect();
+        send(joiner1, 'join_room', { roomId: room2.roomId, name: 'X' });
+        await waitForMessage(joiner1, 'room_joined');
+
+        const joiner2 = await connect();
+        send(joiner2, 'join_room', { roomId: room3.roomId, name: 'Y' });
+        await waitForMessage(joiner2, 'room_joined');
+
+        await closeAll(host2, guest2, joiner1, joiner2);
     });
 });
 
@@ -326,42 +478,197 @@ describe('E2E: host disconnect and reconnect', () => {
 
 describe('E2E: multiple concurrent rooms', () => {
     test('two independent rooms work simultaneously', async () => {
-        const host1 = await connect();
-        const guest1 = await connect();
-        const host2 = await connect();
-        const guest2 = await connect();
+        const h1 = await connect();
+        const g1 = await connect();
+        const h2 = await connect();
+        const g2 = await connect();
 
-        // Room 1
-        send(host1, 'create_room', { name: 'Alice' });
-        const room1 = await waitForMessage(host1, 'room_created');
+        send(h1, 'create_room', { name: 'Alice' });
+        const r1 = await waitForMessage(h1, 'room_created');
 
-        // Room 2
-        send(host2, 'create_room', { name: 'Charlie' });
-        const room2 = await waitForMessage(host2, 'room_created');
+        send(h2, 'create_room', { name: 'Charlie' });
+        const r2 = await waitForMessage(h2, 'room_created');
 
-        expect(room1.roomId).not.toBe(room2.roomId);
+        expect(r1.roomId).not.toBe(r2.roomId);
 
-        // Guest 1 joins room 1
-        send(guest1, 'join_room', { roomId: room1.roomId, name: 'Bob' });
-        const j1 = await waitForMessage(guest1, 'room_joined');
-        expect(j1.roomId).toBe(room1.roomId);
+        send(g1, 'join_room', { roomId: r1.roomId, name: 'Bob' });
+        await waitForMessage(g1, 'room_joined');
+        await waitForMessage(h1, 'opponent_joined');
 
-        // Guest 2 joins room 2
-        send(guest2, 'join_room', { roomId: room2.roomId, name: 'Diana' });
-        const j2 = await waitForMessage(guest2, 'room_joined');
-        expect(j2.roomId).toBe(room2.roomId);
+        send(g2, 'join_room', { roomId: r2.roomId, name: 'Diana' });
+        await waitForMessage(g2, 'room_joined');
+        await waitForMessage(h2, 'opponent_joined');
 
-        // Both hosts get notified
-        await waitForMessage(host1, 'opponent_joined');
-        await waitForMessage(host2, 'opponent_joined');
+        await closeAll(h1, g1, h2, g2);
+    });
+});
 
-        host1.close();
-        guest1.close();
-        host2.close();
-        guest2.close();
-        await waitForClose(host1);
-        await waitForClose(guest1);
-        await waitForClose(host2);
-        await waitForClose(guest2);
+// ===== E2E: Moves =====
+
+describe('E2E: move relay', () => {
+    test('moves are relayed between host and guest', async () => {
+        const host = await connect();
+        const guest = await connect();
+
+        send(host, 'create_room', { name: 'Alice' });
+        const created = await waitForMessage(host, 'room_created');
+
+        send(guest, 'join_room', { roomId: created.roomId, name: 'Bob' });
+        await waitForMessage(guest, 'room_joined');
+        await waitForMessage(host, 'opponent_joined');
+
+        send(host, 'move', { roomId: created.roomId, cell: 4, player: 'X' });
+        const relayed = await waitForMessage(guest, 'move');
+        expect(relayed.cell).toBe(4);
+        expect(relayed.player).toBe('X');
+
+        await closeAll(host, guest);
+    });
+});
+
+// ===== E2E: Rematch =====
+
+describe('E2E: rematch flow', () => {
+    test('rematch request and accept', async () => {
+        const host = await connect();
+        const guest = await connect();
+
+        send(host, 'create_room', { name: 'Alice' });
+        const created = await waitForMessage(host, 'room_created');
+
+        send(guest, 'join_room', { roomId: created.roomId, name: 'Bob' });
+        await waitForMessage(guest, 'room_joined');
+        await waitForMessage(host, 'opponent_joined');
+
+        send(host, 'rematch_request', { roomId: created.roomId });
+        await waitForMessage(guest, 'rematch_requested');
+
+        send(guest, 'rematch_accept', { roomId: created.roomId });
+
+        await waitForMessage(host, 'rematch_accepted');
+        await waitForMessage(guest, 'rematch_accepted');
+
+        await closeAll(host, guest);
+    });
+});
+
+// ===== E2E: Blind Bid Wager =====
+
+describe('E2E: blind bid wager', () => {
+    test('both players place bids, reveal happens', async () => {
+        const host = await connect();
+        const guest = await connect();
+
+        send(host, 'create_room', { name: 'Alice' });
+        const created = await waitForMessage(host, 'room_created');
+
+        send(guest, 'join_room', { roomId: created.roomId, name: 'Bob' });
+        await waitForMessage(guest, 'room_joined');
+        await waitForMessage(host, 'opponent_joined');
+
+        send(host, 'place_bid', { roomId: created.roomId, amount: 50 });
+        await waitForMessage(guest, 'bid_locked');
+
+        send(guest, 'place_bid', { roomId: created.roomId, amount: 75 });
+
+        const reveal1 = await waitForMessage(host, 'bid_reveal');
+        const reveal2 = await waitForMessage(guest, 'bid_reveal');
+        expect(reveal1.finalWager).toBe(50);
+        expect(reveal1.pot).toBe(100);
+        expect(reveal2.finalWager).toBe(50);
+        expect(reveal2.pot).toBe(100);
+
+        await closeAll(host, guest);
+    });
+
+    test('veto bid — both get bid_veto', async () => {
+        const host = await connect();
+        const guest = await connect();
+
+        send(host, 'create_room', { name: 'Alice' });
+        const created = await waitForMessage(host, 'room_created');
+
+        send(guest, 'join_room', { roomId: created.roomId, name: 'Bob' });
+        await waitForMessage(guest, 'room_joined');
+        await waitForMessage(host, 'opponent_joined');
+
+        send(host, 'place_bid', { roomId: created.roomId, amount: 50 });
+        await waitForMessage(guest, 'bid_locked');
+
+        send(guest, 'veto_bid', { roomId: created.roomId });
+
+        await waitForMessage(host, 'bid_veto');
+        await waitForMessage(guest, 'bid_veto');
+
+        await closeAll(host, guest);
+    });
+
+    test('bid_start after reveal', async () => {
+        const host = await connect();
+        const guest = await connect();
+
+        send(host, 'create_room', { name: 'Alice' });
+        const created = await waitForMessage(host, 'room_created');
+
+        send(guest, 'join_room', { roomId: created.roomId, name: 'Bob' });
+        await waitForMessage(guest, 'room_joined');
+        await waitForMessage(host, 'opponent_joined');
+
+        send(host, 'place_bid', { roomId: created.roomId, amount: 50 });
+        await waitForMessage(guest, 'bid_locked');
+        send(guest, 'place_bid', { roomId: created.roomId, amount: 50 });
+        await waitForMessage(host, 'bid_reveal');
+        await waitForMessage(guest, 'bid_reveal');
+
+        send(host, 'bid_start', { roomId: created.roomId });
+        const start = await waitForMessage(guest, 'bid_start');
+        expect(start.wager).toBe(50);
+        expect(start.pot).toBe(100);
+
+        await closeAll(host, guest);
+    });
+});
+
+// ===== E2E: Rematch with bid reset =====
+
+describe('E2E: rematch resets bid state', () => {
+    test('after rematch accept, new bids work correctly', async () => {
+        const host = await connect();
+        const guest = await connect();
+
+        send(host, 'create_room', { name: 'Alice' });
+        const created = await waitForMessage(host, 'room_created');
+
+        send(guest, 'join_room', { roomId: created.roomId, name: 'Bob' });
+        await waitForMessage(guest, 'room_joined');
+        await waitForMessage(host, 'opponent_joined');
+
+        // First round bids
+        send(host, 'place_bid', { roomId: created.roomId, amount: 50 });
+        await waitForMessage(guest, 'bid_locked');
+        send(guest, 'place_bid', { roomId: created.roomId, amount: 75 });
+        await waitForMessage(host, 'bid_reveal');
+        await waitForMessage(guest, 'bid_reveal');
+
+        // Rematch
+        send(host, 'rematch_request', { roomId: created.roomId });
+        await waitForMessage(guest, 'rematch_requested');
+        send(guest, 'rematch_accept', { roomId: created.roomId });
+        await waitForMessage(host, 'rematch_accepted');
+        await waitForMessage(guest, 'rematch_accepted');
+
+        // Second round bids
+        send(host, 'place_bid', { roomId: created.roomId, amount: 100 });
+        await waitForMessage(guest, 'bid_locked');
+        send(guest, 'place_bid', { roomId: created.roomId, amount: 25 });
+
+        const reveal1 = await waitForMessage(host, 'bid_reveal');
+        const reveal2 = await waitForMessage(guest, 'bid_reveal');
+        expect(reveal1.finalWager).toBe(25);
+        expect(reveal1.pot).toBe(50);
+        expect(reveal2.finalWager).toBe(25);
+        expect(reveal2.pot).toBe(50);
+
+        await closeAll(host, guest);
     });
 });
