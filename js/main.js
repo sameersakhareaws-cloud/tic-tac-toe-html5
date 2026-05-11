@@ -602,7 +602,11 @@
     let bidLocked = false;
 
     function showBlindBidScreen() {
-    console.log('DEBUG: showBlindBidScreen called');
+        console.log('DEBUG: showBlindBidScreen called');
+        const username = CG.getUsername() || 'Player';
+        const balance = Wager.getBalance();
+        const roomCode = Multiplayer.getRoom();
+        console.log('DEBUG: username=%s balance=%s roomCode=%s', username, balance, roomCode);
         const username = CG.getUsername() || 'Player';
         const balance = Wager.getBalance();
         const roomCode = Multiplayer.getRoom();
@@ -652,8 +656,9 @@
 
         UI.showWagerWarning('');
         UI.showAdCooldown(Wager.getAdCooldownRemaining());
-        console.log('DEBUG: Switching to wager screen');
+        console.log('DEBUG: About to call UI.showScreen(wager)');
         UI.showScreen('wager');
+        console.log('DEBUG: UI.showScreen(wager) completed, current screen:', UI.getCurrentScreen());
     }
 
     function showBidWaitingScreen() {
@@ -736,6 +741,7 @@
 
         Multiplayer.on('roomJoined', (data) => {
             // Guest joined a room – after UI setup, send our balance to host
+            console.log('FLOW: roomJoined event received', JSON.stringify(data));
             const myBal = Wager.getBalance();
             Multiplayer.send({ type: 'balance_update', balance: myBal });
             console.log('JOIN: Successfully joined room', data.roomId);

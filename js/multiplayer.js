@@ -261,7 +261,7 @@ const Multiplayer = (() => {
                 myRoom = msg.roomId;
                 mySymbol = msg.symbol;
                 resetWager();
-                emit('roomJoined', { roomId: msg.roomId, symbol: msg.symbol, hostName: msg.hostName });
+                emit('roomJoined', { roomId: msg.roomId, symbol: msg.symbol, hostName: msg.hostName, hostBalance: msg.hostBalance });
                 break;
             case 'join_failed':
                 emit('joinFailed', { reason: msg.reason });
