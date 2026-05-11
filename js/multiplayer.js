@@ -143,11 +143,8 @@ const Multiplayer = (() => {
             };
 
             ws.onmessage = (event) => {
-                try {
-                    const msg = JSON.parse(event.data);
-                    console.log('MP received:', msg.type, JSON.stringify(msg));
-                    handleWSMessage(msg);
-                } catch (e) { console.error('MP: parse/handle error:', e); }
+                try { handleWSMessage(JSON.parse(event.data)); }
+                catch (e) { console.error('MP: parse error:', e); }
             };
 
             ws.onclose = () => {
@@ -267,7 +264,7 @@ const Multiplayer = (() => {
                 emit('joinFailed', { reason: msg.reason });
                 break;
             case 'opponent_joined':
-                try { emit('opponentJoined', { name: msg.name, balance: msg.balance }); } catch(e) { console.error('opponentJoined handler error:', e); }
+                emit('opponentJoined', { name: msg.name, balance: msg.balance });
                 break;
             case 'opponent_left':
                 emit('opponentLeft', {});

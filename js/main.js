@@ -602,11 +602,9 @@
     let bidLocked = false;
 
     function showBlindBidScreen() {
-        console.log('DEBUG: showBlindBidScreen called');
         const username = CG.getUsername() || 'Player';
         const balance = Wager.getBalance();
         const roomCode = Multiplayer.getRoom();
-        console.log('DEBUG: username=%s balance=%s roomCode=%s', username, balance, roomCode);
 
         // Reset bid state
         myBidAmount = Math.min(50, balance);
@@ -653,9 +651,7 @@
 
         UI.showWagerWarning('');
         UI.showAdCooldown(Wager.getAdCooldownRemaining());
-        console.log('DEBUG: About to call UI.showScreen(wager)');
         UI.showScreen('wager');
-        console.log('DEBUG: UI.showScreen(wager) completed, current screen:', UI.getCurrentScreen());
     }
 
     function showBidWaitingScreen() {
@@ -739,7 +735,6 @@
         Multiplayer.on('roomJoined', (data) => {
             // Guest joined a room – after UI setup, send our balance to host
             console.log('FLOW: roomJoined event received', JSON.stringify(data));
-            window._debugLog('roomJoined: ' + JSON.stringify(data));
             const myBal = Wager.getBalance();
             Multiplayer.send({ type: 'balance_update', balance: myBal });
             console.log('JOIN: Successfully joined room', data.roomId);
@@ -1019,20 +1014,6 @@
             }
         }, 1000);
     }
-
-    // ===================================================================
-    // Debug Panel (visible on all screens)
-    // ===================================================================
-    (function() {
-        const dbg = document.createElement('div');
-        dbg.id = 'debug-panel';
-        dbg.style.cssText = 'position:fixed;top:0;left:0;right:0;background:rgba(0,0,0,0.8);color:#0f0;font-size:10px;padding:4px;z-index:99999;max-height:80px;overflow:auto;white-space:pre-wrap;font-family:monospace;';
-        document.body.appendChild(dbg);
-        window._debugLog = function(msg) {
-            const t = new Date().toLocaleTimeString();
-            dbg.textContent = '[' + t + '] ' + msg + '\n' + dbg.textContent;
-        };
-    })();
 
     // ===================================================================
     // Global Error Handler
