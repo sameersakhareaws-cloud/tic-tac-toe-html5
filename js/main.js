@@ -481,6 +481,24 @@
             }
         });
 
+        // Quick bid buttons — set up once, not inside showBlindBidScreen
+        document.querySelectorAll('.btn-quick-bid').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (bidLocked) return;
+                const slider = document.getElementById('wager-slider');
+                const amt = btn.dataset.amount;
+                if (amt === 'allin') {
+                    myBidAmount = Wager.getBalance();
+                } else {
+                    myBidAmount = parseInt(amt, 10);
+                }
+                slider.value = myBidAmount;
+                document.getElementById('wager-amount-display').textContent = myBidAmount;
+                document.querySelectorAll('.btn-quick-bid').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
         UI.onButton('wagerBack', () => {
             Multiplayer.leaveRoom();
             isMultiplayer = false;
@@ -509,11 +527,13 @@
             rematchRoom = null;
             currentWager = 0;
             currentPot = 0;
+            myBidAmount = 0;
+            bidLocked = false;
             TicTacToe.reset();
             UI.clearBoard();
             const username = CG.getUsername() || 'Player';
             Multiplayer.createRoom(username);
-            showWagerScreen(true);
+            // Room created — showBlindBidScreen will fire on roomCreated event
         });
 
         document.getElementById('btn-modal-menu').addEventListener('click', () => {
@@ -535,6 +555,11 @@
             UI.hideRematchRequest();
             TicTacToe.reset();
             UI.clearBoard();
+            // Reset wager state for new round
+            currentWager = 0;
+            currentPot = 0;
+            myBidAmount = 0;
+            bidLocked = false;
             // Accept rematch on the existing room — no new room created
             rematchRoom = Multiplayer.getRoom();
             Multiplayer.acceptRematch();
@@ -578,10 +603,11 @@
         myBidAmount = Math.min(50, balance);
         bidLocked = false;
 
-        // Update player info
+        // Update player info — use actual opponent name from lobby if available
         document.getElementById('wager-host-name').textContent = username;
         document.getElementById('wager-host-balance').textContent = `💰 ${Wager.formatCoins(balance)}`;
-        document.getElementById('wager-guest-name').textContent = 'Opponent';
+        const oppName = document.getElementById('guest-name').textContent;
+        document.getElementById('wager-guest-name').textContent = (oppName && oppName !== 'Waiting...') ? oppName : 'Opponent';
         document.getElementById('wager-guest-balance').textContent = '💰 --';
         if (roomCode) document.getElementById('wager-room-code-display').textContent = roomCode;
 
@@ -594,23 +620,9 @@
         slider.disabled = false;
         document.getElementById('wager-amount-display').textContent = myBidAmount;
 
-        // Setup quick bid buttons
+        // Clear active state on quick bid buttons
         document.querySelectorAll('.btn-quick-bid').forEach(btn => {
             btn.classList.remove('active');
-            btn.addEventListener('click', () => {
-                if (bidLocked) return;
-                const amt = btn.dataset.amount;
-                if (amt === 'allin') {
-                    myBidAmount = balance;
-                } else {
-                    myBidAmount = parseInt(amt, 10);
-                }
-                slider.value = myBidAmount;
-                document.getElementById('wager-amount-display').textContent = myBidAmount;
-                // Highlight selected
-                document.querySelectorAll('.btn-quick-bid').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-            });
         });
 
         // Slider input
@@ -808,12 +820,14 @@
             TicTacToe.reset();
             UI.clearBoard();
             UI.hideLobbyWaiting();
+            // Reset wager state for new round
+            currentWager = 0;
+            currentPot = 0;
+            myBidAmount = 0;
+            bidLocked = false;
             // Both players reuse the SAME room — no new room creation
             // The server keeps the room alive, just reset game state
-            const username = CG.getUsername() || 'Player';
-            // Determine if we're host (X) or guest (O) in the existing room
-            const isHost = mySymbol === 'X';
-            showWagerScreen(isHost);
+            showBlindBidScreen();
             trackEvent('rematch_accepted', { mode: 'wager' });
         });
 

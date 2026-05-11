@@ -319,6 +319,11 @@ function handleMessage(playerId, msg) {
         case 'rematch_accept': {
             const room = rooms.get(msg.roomId);
             if (!room) return;
+            // Reset bid state for the new round
+            room.hostBid = undefined;
+            room.guestBid = undefined;
+            room.wager = 0;
+            room.wagerLocked = false;
             // Send rematch_accepted to BOTH players
             if (room.hostId) {
                 sendToPlayer(room.hostId, 'rematch_accepted');
@@ -326,6 +331,7 @@ function handleMessage(playerId, msg) {
             if (room.guestId) {
                 sendToPlayer(room.guestId, 'rematch_accepted');
             }
+            console.log(`Rematch accepted in room ${msg.roomId} — bid state reset`);
             break;
         }
 
