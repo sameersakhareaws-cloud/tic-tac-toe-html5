@@ -23,8 +23,10 @@
                 <div id="loading-progress-bar" class="loading-progress-bar"></div>
             </div>
         </div>
-        <span id="version-display" class="version-display">v1.3.0</span>
     </div>
+
+    <!-- ===== Version Display (all screens) ===== -->
+    <span id="version-display" class="version-display">v1.4.1</span>
 
     <!-- ===== Main Menu ===== -->
     <div id="menu-screen" class="screen">
@@ -32,9 +34,11 @@
             <h1>⚡ Tic-Tac-Toe</h1>
             <div id="user-info" class="user-info"></div>
             <div class="menu-buttons">
-                <button id="btn-single" class="btn btn-primary btn-large">🎮 Play Now</button>
-                <button id="btn-create" class="btn btn-secondary">➕ Create Room</button>
-                <button id="btn-join" class="btn btn-ghost">🔗 Join Room</button>
+                <button id="btn-single" class="btn btn-primary btn-large">🎮 Local Player vs Player</button>
+                <div class="menu-row">
+                    <button id="btn-create" class="btn btn-secondary">➕ Create Room</button>
+                    <button id="btn-join" class="btn btn-ghost">🔗 Join Room</button>
+                </div>
             </div>
             <div id="join-container" class="join-container hidden">
                 <input type="text" id="room-code-input" placeholder="Enter room code" maxlength="6" autocomplete="off">

@@ -65,7 +65,7 @@ html, body {
 }
 
 .version-display {
-    position: absolute;
+    position: fixed;
     bottom: 16px;
     right: 20px;
     font-size: 0.75rem;
@@ -74,6 +74,7 @@ html, body {
     font-weight: 500;
     letter-spacing: 0.5px;
     pointer-events: none;
+    z-index: 9999;
 }
 
 .loader-content h1 {
@@ -127,6 +128,19 @@ html, body {
     flex-direction: column;
     gap: 12px;
     margin-bottom: 20px;
+}
+
+.menu-row {
+    display: flex;
+    gap: 10px;
+}
+
+.menu-row .btn {
+    flex: 1;
+    min-width: 0;
+    padding-left: 10px;
+    padding-right: 10px;
+    font-size: 0.9rem;
 }
 
 .footer-text {
@@ -687,6 +701,8 @@ html, body {
 /* ===== Responsive ===== */
 @media (max-width: 480px) {
     .menu-content h1, .loader-content h1 { font-size: 2rem; }
+    .menu-row { gap: 8px; }
+    .menu-row .btn { font-size: 0.8rem; padding: 12px 8px; }
 
     .board {
         max-width: 320px;
