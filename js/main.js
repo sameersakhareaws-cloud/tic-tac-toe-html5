@@ -25,6 +25,7 @@
     let currentWager = 0;
     let currentPot = 0;
     let rematchRoom = null; // Room code to reuse for rematch (prevents new room creation)
+    let opponentBalance = null; // Track opponent's balance for display in wager screen
 
     // ===================================================================
     // Sound Effects
@@ -320,6 +321,7 @@
             rematchRoom = null;
             currentWager = 0;
             currentPot = 0;
+            opponentBalance = null;
             UI.clearLobbyWager();
             UI.setLobbyJoinedState(false);
             UI.showScreen('menu');
@@ -337,6 +339,7 @@
             rematchRoom = null;
             currentWager = 0;
             currentPot = 0;
+            opponentBalance = null;
             TicTacToe.reset();
             UI.clearBoard();
             UI.hideDisconnectModal();
@@ -479,7 +482,7 @@
             } else if (result.reason === 'cooldown') {
                 UI.showAdCooldown(result.remaining);
             } else {
-                UI.showWagerWarning('Ad not available. Try again later.');
+                UI.showAdWarning();
             }
         });
 
@@ -528,9 +531,10 @@
             mySymbol = null;
             rematchRoom = null;
             currentWager = 0;
-            currentPot = 0;
+            currentPT = 0;
             myBidAmount = 0;
             bidLocked = false;
+            opponentBalance = null;
             TicTacToe.reset();
             UI.clearBoard();
             const username = CG.getUsername() || 'Player';
@@ -562,6 +566,7 @@
             currentPot = 0;
             myBidAmount = 0;
             bidLocked = false;
+            opponentBalance = null;
             // Accept rematch on the existing room — no new room created
             rematchRoom = Multiplayer.getRoom();
             Multiplayer.acceptRematch();
@@ -597,6 +602,7 @@
     let bidLocked = false;
 
     function showBlindBidScreen() {
+    console.log('DEBUG: showBlindBidScreen called');
         const username = CG.getUsername() || 'Player';
         const balance = Wager.getBalance();
         const roomCode = Multiplayer.getRoom();
@@ -613,7 +619,8 @@
         document.getElementById('wager-host-balance').textContent = `💰 ${Wager.formatCoins(balance)}`;
         const oppName = document.getElementById('guest-name').textContent;
         document.getElementById('wager-guest-name').textContent = (oppName && oppName !== 'Waiting...') ? oppName : 'Opponent';
-        document.getElementById('wager-guest-balance').textContent = '💰 --';
+        // Show opponent balance if we have it (from opponentJoined event), otherwise show ---
+        document.getElementById('wager-guest-balance').textContent = opponentBalance !== null ? `💰 ${Wager.formatCoins(opponentBalance)}` : '💰 --';
         if (roomCode) document.getElementById('wager-room-code-display').textContent = roomCode;
 
         // Setup slider
@@ -645,6 +652,7 @@
 
         UI.showWagerWarning('');
         UI.showAdCooldown(Wager.getAdCooldownRemaining());
+        console.log('DEBUG: Switching to wager screen');
         UI.showScreen('wager');
     }
 
@@ -704,6 +712,13 @@
         });
 
         Multiplayer.on('roomCreated', (data) => {
+            // Host creates a room – store room code in UI and announce balance
+            UI.setRoomCode(data.roomId);
+            const myBal = Wager.getBalance();
+            Multiplayer.send({ type: 'balance_update', balance: myBal });
+            // Host creates room – no opponent yet, but keep track of own balance.
+            // When opponent joins, we'll send our balance then.
+
             console.log('MP: Room created:', data.roomId);
             UI.setRoomCode(data.roomId);
             mySymbol = 'X';
@@ -720,6 +735,9 @@
         });
 
         Multiplayer.on('roomJoined', (data) => {
+            // Guest joined a room – after UI setup, send our balance to host
+            const myBal = Wager.getBalance();
+            Multiplayer.send({ type: 'balance_update', balance: myBal });
             console.log('JOIN: Successfully joined room', data.roomId);
             UI.setRoomCode(data.roomId);
             mySymbol = data.symbol;
@@ -727,6 +745,12 @@
             const username = CG.getUsername() || 'Player';
             const hostName = data.hostName || 'Host';
             UI.setPlayerNames(hostName, data.symbol === 'O' ? username : 'Waiting...');
+            // Store host balance for guest UI (hostBalance sent by server)
+            if (data.hostBalance !== undefined) {
+                opponentBalance = data.hostBalance;
+            } else {
+                opponentBalance = Wager.getBalance();
+            }
             CG.updateRoom({ roomId: data.roomId, isJoinable: false });
             UI.setLobbyJoinedState(true);
             // Guest: show blind bid screen immediately (both players need to bid)
@@ -746,7 +770,14 @@
         Multiplayer.on('opponentJoined', (data) => {
             console.log('JOIN: Opponent joined:', data.name, 'mySymbol:', mySymbol);
             const username = CG.getUsername() || 'Player';
-            UI.setPlayerNames(username, data.name);
+            UI.setPlayerNames(`${username} (X)`, `${data.name} (O)`);
+            // Store opponent balance for wager screen display
+            if (data.balance !== undefined) {
+                opponentBalance = data.balance;
+            } else {
+                // Fallback: assume same balance as local player (starting balances are equal)
+                opponentBalance = Wager.getBalance();
+            }
             UI.setLobbyJoinedState(true);
             // Both players enter the blind bid screen
             showBlindBidScreen();
@@ -844,6 +875,7 @@
             currentPot = 0;
             myBidAmount = 0;
             bidLocked = false;
+            opponentBalance = null;
             // Both players reuse the SAME room — no new room creation
             // The server keeps the room alive, just reset game state
             showBlindBidScreen();

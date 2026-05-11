@@ -310,7 +310,7 @@ const Multiplayer = (() => {
         }
     }
 
-    function send(data) {
+    function send(data) { // Existing send function
         if (useWS && ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify(data));
         } else if (!useWS) {

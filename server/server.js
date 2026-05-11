@@ -35,10 +35,11 @@ function generateRoomCode() {
 function createRoom(hostId, hostName) {
     const roomId = generateRoomCode();
     rooms.set(roomId, {
-        hostName: hostName || 'Host',
         hostId,
-        guestName: null,
+        hostName: hostName || 'Host',
+        hostBalance: 0, // will be set via balance_update from host client
         guestId: null,
+        guestName: null,
         createdAt: Date.now(),
         // Blind bid state
         hostBid: undefined,
@@ -202,6 +203,11 @@ function handleMessage(playerId, msg) {
 
     switch (msg.type) {
         case 'create_room': {
+            // Room creation – wait for host to send balance later via 'balance_update'
+
+            // Initialize host balance placeholder
+            // Will be updated via 'balance_update' from client
+
             const playerName = msg.name || 'Host';
             const roomId = createRoom(playerId, playerName);
             player.roomId = roomId;
@@ -212,6 +218,13 @@ function handleMessage(playerId, msg) {
         }
 
         case 'join_room': {
+            // join handling remains same – after join, the client will send its balance separately
+
+            // If the joining player sends a balance update as part of join, store it
+            if (msg.balance !== undefined && playerId) {
+                // Wait until room is created to set host balance below
+                // We'll set hostBalance after creating room
+            }
             const roomId = msg.roomId.toUpperCase();
             const result = joinRoom(roomId, playerId, msg.name);
 
@@ -219,15 +232,19 @@ function handleMessage(playerId, msg) {
                 player.roomId = roomId;
                 player.name = msg.name || 'Guest';
 
-                sendTo(player.ws, 'room_joined', {
-                    roomId,
-                    symbol: 'O',
-                    hostName: result.room.hostName
-                });
+                // Include the host's current balance for the guest to display
+            const hostBal = result.room.hostBalance || 0;
+            sendTo(player.ws, 'room_joined', {
+                roomId,
+                symbol: 'O',
+                hostName: result.room.hostName,
+                hostBalance: hostBal
+            });
 
                 // Notify host
                 if (result.room.hostId) {
                     sendToPlayer(result.room.hostId, 'opponent_joined', {
+                        balance: result.room.guestBalance || 0,
                         name: player.name,
                         symbol: 'O'
                     });
@@ -364,6 +381,39 @@ function handleMessage(playerId, msg) {
             break;
         }
 
+        case 'balance_update': {
+            // Update the stored balance for this player in the room
+            const roomId = player.roomId;
+            if (roomId) {
+                const room = rooms.get(roomId);
+                if (room) {
+                    if (playerId === room.hostId) {
+                        room.hostBalance = msg.balance || 0;
+                        // If guest already present, inform them of host balance
+                        if (room.guestId) {
+                            sendToPlayer(room.guestId, 'opponent_joined', {
+                                name: room.hostName,
+                                balance: room.hostBalance,
+                                symbol: 'X'
+                            });
+                        }
+                    } else {
+                        // Guest balance
+                        room.guestBalance = msg.balance || 0;
+                        // Inform host of guest balance
+                        if (room.hostId) {
+                            sendToPlayer(room.hostId, 'opponent_joined', {
+                                name: room.guestName,
+                                balance: room.guestBalance,
+                                symbol: 'O'
+                            });
+                        }
+                    }
+                }
+            }
+            // No further response needed (UI will update on opponentJoined)
+            break;
+        }
         default: {
             sendTo(player.ws, 'error', { message: `Unknown type: ${msg.type}` });
         }

@@ -35,7 +35,9 @@ class RoomManager {
             guestId: null,
             createdAt: this.now(),
             hostBid: undefined,
+            hostBalance: 0,
             guestBid: undefined,
+            guestBalance: 0,
             wager: 0,
             wagerLocked: false
         });

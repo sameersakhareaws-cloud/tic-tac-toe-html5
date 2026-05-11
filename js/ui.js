@@ -196,6 +196,12 @@ const UI = (() => {
         display.wagerWarning.classList.toggle('hidden', !msg);
     }
 
+    // Show modern ad-not-available modal
+    function showAdWarning() {
+        const modal = document.getElementById('ad-warning-modal');
+        if (modal) modal.classList.add('active');
+    }
+
     function showAdCooldown(remainingSec) {
         if (remainingSec > 0) {
             const mins = Math.floor(remainingSec / 60);
@@ -452,7 +458,7 @@ const UI = (() => {
         setLoadingText, setUserInfo, setLoadingProgress,
         updateCoinDisplay, pulseCoinHud, showCoinWinAnimation,
         toggleJoinContainer,
-        setWagerScreen, setWagerRoomCode, updateWagerDisplay, getWagerAmount, showWagerWarning, showAdCooldown,
+        setWagerScreen, setWagerRoomCode, updateWagerDisplay, getWagerAmount, showWagerWarning, showAdCooldown, showAdWarning,
         setRoomCode, setPlayerNames, setLobbyWager, clearLobbyWager,
         setGameInfo, setGameWager, setTurnIndicator, renderBoard, clearBoard,
         setConnectionStatus, showGameOverForResult,
@@ -463,3 +469,15 @@ const UI = (() => {
         showLobbyError, hideLobbyError
     };
 })();
+
+// Attach modal close handlers after DOM is ready
+window.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('ad-warning-modal');
+    if (modal) {
+        const closeBtn = document.getElementById('ad-warning-close');
+        const okBtn = document.getElementById('ad-warning-ok');
+        const hide = () => modal.classList.remove('active');
+        if (closeBtn) closeBtn.addEventListener('click', hide);
+        if (okBtn) okBtn.addEventListener('click', hide);
+    }
+});
