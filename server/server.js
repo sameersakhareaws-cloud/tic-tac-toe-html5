@@ -141,13 +141,13 @@ const server = http.createServer((req, res) => {
                     res.writeHead(404);
                     res.end('Not found');
                 } else {
-                    res.writeHead(200, { 'Content-Type': 'text/html' });
+                    res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-store, no-cache, must-revalidate' });
                     res.end(data2);
                 }
             });
             return;
         }
-        res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'text/plain' });
+        res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'text/plain', 'Cache-Control': 'no-store, no-cache, must-revalidate' });
         res.end(data);
     });
 });

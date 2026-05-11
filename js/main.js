@@ -754,7 +754,13 @@
             CG.updateRoom({ roomId: data.roomId, isJoinable: false });
             UI.setLobbyJoinedState(true);
             // Guest: show blind bid screen immediately (both players need to bid)
-            showBlindBidScreen();
+            try {
+                showBlindBidScreen();
+            } catch(e) {
+                console.error('ERROR in showBlindBidScreen (guest):', e);
+                // Fallback: just show the wager screen
+                UI.showScreen('wager');
+            }
         });
 
         Multiplayer.on('joinFailed', (data) => {
@@ -780,7 +786,12 @@
             }
             UI.setLobbyJoinedState(true);
             // Both players enter the blind bid screen
-            showBlindBidScreen();
+            try {
+                showBlindBidScreen();
+            } catch(e) {
+                console.error('ERROR in showBlindBidScreen (host):', e);
+                UI.showScreen('wager');
+            }
         });
 
         // Blind bid events
@@ -1010,6 +1021,12 @@
     // ===================================================================
     window.addEventListener('error', (e) => {
         console.error('GLOBAL ERROR:', e.message, 'at', e.filename + ':' + e.lineno);
+        try {
+            const errDiv = document.createElement('div');
+            errDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:white;padding:8px;z-index:99999;font-size:12px;white-space:pre-wrap;';
+            errDiv.textContent = 'ERROR: ' + e.message + ' at ' + e.filename + ':' + e.lineno;
+            document.body.appendChild(errDiv);
+        } catch(e2) {}
     });
     window.addEventListener('unhandledrejection', (e) => {
         console.error('UNHANDLED PROMISE REJECTION:', e.reason);
