@@ -11,7 +11,7 @@
  */
 (function() {
     // ===== Version =====
-    const VERSION = 'v1.4.1';
+    const VERSION = 'v1.4.2';
     const versionEl = document.getElementById('version-display');
     if (versionEl) versionEl.textContent = VERSION;
 

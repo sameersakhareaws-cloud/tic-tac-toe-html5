@@ -425,7 +425,7 @@ const Multiplayer = (() => {
     function getName() { return myName; }
 
     return {
-        connect, on, off,
+        connect, on, off, send,
         createRoom, joinRoom, sendMove,
         requestRematch, acceptRematch, leaveRoom,
         sendBid, sendVeto, sendBidStart,
